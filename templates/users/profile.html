@@ -1,0 +1,167 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Profile{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Profile</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{ url_for('home_blueprint.index') }}">Home</a></li>
+                        <li class="breadcrumb-item active">User Profile</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3">
+                    <!-- Profile Image -->
+                    <div class="card card-primary card-outline">
+                        <div class="card-body box-profile">
+                            <div class="text-center">
+                                <img class="profile-user-img img-fluid img-circle"
+                                     src="{{ url_for('static', filename='assets/img/user1-128x128.jpg') }}"
+                                     alt="User profile picture">
+                            </div>
+                            <h3 class="profile-username text-center">{{ user.username }}</h3>
+                            <p class="text-muted text-center">{{ user.email }}</p>
+                            <ul class="list-group list-group-unbordered mb-3">
+                                <li class="list-group-item">
+                                    <b>ID</b> <span class="float-right">{{ user.id }}</span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Status</b> <span class="float-right">{% if user.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-secondary">Frozen</span>{% endif %}</span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Permissions</b>
+                                    <div class="mt-2">
+                                        {% if user.permissions_list %}
+                                            {% set grouped = {} %}
+                                            {% for perm in user.permissions_list %}
+                                                {% set parts = perm.split(':', 1) %}
+                                                {% set group = parts[0]|upper %}
+                                                {% if group in grouped %}
+                                                    {% set _ = grouped[group].append(perm) %}
+                                                {% else %}
+                                                    {% set _ = grouped.update({group: [perm]}) %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% for group, perms in grouped.items() %}
+                                                <div class="mb-1">
+                                                    <span class="font-weight text-secondary small">{{ group }}</span>:
+                                                    {% for perm in perms %}
+                                                        <span class="badge badge-info mr-1">{{ perm }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted ml-2">None</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            </ul>
+                            {% if user.bio %}
+                            <p class="text-muted text-center">{{ user.bio }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- /.card -->
+                </div>
+                <!-- /.col -->
+                <div class="col-md-9">
+                    <div class="card">
+                        <div class="card-header p-2">
+                            <ul class="nav nav-pills">
+                                <li class="nav-item"><a class="nav-link active" href="#activity" data-toggle="tab">Activity</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#timeline" data-toggle="tab">Timeline</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">Settings</a></li>
+                            </ul>
+                        </div><!-- /.card-header -->
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="active tab-pane" id="activity">
+                                    {% if history and history|length > 0 %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>תאריך</th>
+                                                    <th>סוג פעולה</th>
+                                                    <th>פרטים</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for row in history %}
+                                                <tr>
+                                                    <td>{{ row.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                                    <td>{{ row.action_type }}</td>
+                                                    <td>{{ row.action_details }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted">No recent activity.</p>
+                                    {% endif %}
+                                </div>
+                                <!-- /.tab-pane -->
+                                <div class="tab-pane" id="timeline">
+                                    <p class="text-muted">Timeline is empty.</p>
+                                </div>
+                                <!-- /.tab-pane -->
+                                <div class="tab-pane" id="settings">
+                                    <form class="form-horizontal">
+                                        <div class="form-group row">
+                                            <label for="inputName" class="col-sm-2 col-form-label">Name</label>
+                                            <div class="col-sm-10">
+                                                <input type="text" class="form-control" id="inputName" value="{{ user.username }}" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="inputEmail" class="col-sm-2 col-form-label">Email</label>
+                                            <div class="col-sm-10">
+                                                <input type="email" class="form-control" id="inputEmail" value="{{ user.email }}" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="inputBio" class="col-sm-2 col-form-label">Bio</label>
+                                            <div class="col-sm-10">
+                                                <textarea class="form-control" id="inputBio" rows="2" disabled>{{ user.bio }}</textarea>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <!-- /.tab-pane -->
+                            </div>
+                            <!-- /.tab-content -->
+                        </div><!-- /.card-body -->
+                    </div>
+                    <!-- /.card -->
+                </div>
+                <!-- /.col -->
+            </div>
+            <!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+    <script src="{{ url_for('static', filename='assets/plugins/jquery/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+{% endblock javascripts %} 

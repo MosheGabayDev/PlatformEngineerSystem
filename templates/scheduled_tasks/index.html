@@ -1,0 +1,78 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Scheduled Tasks{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Scheduled Tasks</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">All Scheduled Tasks</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Cron</th>
+                                <th>Enabled</th>
+                                <th>Last Run</th>
+                                <th>Next Run</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.name }}</td>
+                                <td>{{ task.description }}</td>
+                                <td><code>{{ task.cron }}</code></td>
+                                <td>
+                                    {% if task.is_enabled %}
+                                        <span class="badge badge-success">Enabled</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Disabled</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ task.last_run.strftime('%d/%m/%Y %H:%M') if task.last_run else '-' }}</td>
+                                <td>{{ task.next_run.strftime('%d/%m/%Y %H:%M') if task.next_run else '-' }}</td>
+                                <td>
+                                    <a href="#" class="btn btn-primary btn-sm disabled"><i class="fas fa-edit"></i> Edit</a>
+                                    {% if task.is_enabled %}
+                                        <a href="#" class="btn btn-warning btn-sm disabled"><i class="fas fa-pause"></i> Disable</a>
+                                    {% else %}
+                                        <a href="#" class="btn btn-success btn-sm disabled"><i class="fas fa-play"></i> Enable</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+    <script src="{{ url_for('static', filename='assets/plugins/jquery/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+{% endblock javascripts %} 

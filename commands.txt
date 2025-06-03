@@ -1,0 +1,13 @@
+
+
+
+
+
+
+
+
+## database schema update
+Remove-Item -Path migrations -Recurse -Force -ErrorAction SilentlyContinue
+python -m flask db init
+python -m flask db migrate -m "Add AWS fields to Server model"
+python -m flask db upgrade
