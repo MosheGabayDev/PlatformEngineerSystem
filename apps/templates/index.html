@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="jumbotron">
+                <h1 class="display-4">Welcome to Platform Engineer System</h1>
+                <p class="lead">A powerful platform for managing your engineering tasks.</p>
+                <hr class="my-4">
+                <p>Get started by exploring the dashboard or managing your servers.</p>
+                <a class="btn btn-primary btn-lg" href="{{ url_for('main.dashboard') }}" role="button">Go to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

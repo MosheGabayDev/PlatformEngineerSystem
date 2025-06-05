@@ -36,6 +36,7 @@
                                 <th>Username</th>
                                 <th>Email</th>
                                 <th>Status</th>
+                                <th>API Token</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -53,12 +54,27 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if user.api_token and user.api_token.is_active %}
+                                        <span class="badge badge-success">Active</span>
+                                        <small class="text-muted">Expires: {{ user.api_token.expires_at.strftime('%Y-%m-%d') }}</small>
+                                    {% else %}
+                                        <span class="badge badge-secondary">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editUserModal-{{ user.id }}"><i class="fas fa-edit"></i></button>
                                     <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteUserModal-{{ user.id }}"><i class="fas fa-trash"></i></button>
                                     {% if user.is_active %}
                                         <a href="{{ url_for('users.freeze_user', user_id=user.id) }}" class="btn btn-warning btn-sm"><i class="fas fa-user-slash"></i></a>
                                     {% else %}
                                         <a href="{{ url_for('users.unfreeze_user', user_id=user.id) }}" class="btn btn-success btn-sm"><i class="fas fa-user-check"></i></a>
+                                    {% endif %}
+                                    {% if user.id == current_user.id and is_admin %}
+                                        <form action="{{ url_for('users.create_api_token') }}" method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-success" {% if user.api_token and user.api_token.is_active %}disabled{% endif %}>
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                        </form>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -75,31 +91,38 @@
                                   <form method="post" action="{{ url_for('users.edit_user', user_id=user.id) }}">
                                     <div class="modal-body">
                                       <div class="form-group">
-                                        <label>Username</label>
+                                        <label>Username <span style="color:red">*</span></label>
                                         <input type="text" class="form-control" name="username" value="{{ user.username }}" required>
                                       </div>
                                       <div class="form-group">
-                                        <label>Email</label>
+                                        <label>Email <span style="color:red">*</span></label>
                                         <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                      </div>
+                                      <div class="form-group">
+                                        <label>Bio</label>
+                                        <textarea class="form-control" name="bio" rows="2">{{ user.bio }}</textarea>
                                       </div>
                                       {% if is_admin %}
                                       <div class="form-group">
-                                        <label>Password</label>
-                                        <input type="password" class="form-control" name="password" placeholder="Leave blank to keep current password">
+                                        <label>Password <span style="color:red">*</span></label>
+                                        <input type="password" class="form-control" name="password" placeholder="Leave blank to keep current password" required>
                                         <small class="form-text text-muted">Leave blank to keep current password.</small>
                                       </div>
                                       {% endif %}
-                                      {% if is_admin %}
                                       <div class="form-group">
                                         <label>Permissions</label>
-                                        <select class="form-control" name="permissions" multiple>
+                                        <div class="row">
                                           {% for perm in all_permissions %}
-                                            <option value="{{ perm }}" {% if perm in user.permissions_list %}selected{% endif %}>{{ perm }}</option>
+                                            <div class="col-6 col-md-4">
+                                              <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="permissions" id="edit_perm_{{ user.id }}_{{ perm }}" value="{{ perm }}" {% if perm in user.permissions_list %}checked{% endif %}>
+                                                <label class="form-check-label" for="edit_perm_{{ user.id }}_{{ perm }}">{{ perm }}</label>
+                                              </div>
+                                            </div>
                                           {% endfor %}
-                                        </select>
-                                        <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple permissions.</small>
+                                        </div>
+                                        <small class="form-text text-muted">Select the permissions to grant this user.</small>
                                       </div>
-                                      {% endif %}
                                     </div>
                                     <div class="modal-footer">
                                       <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -136,6 +159,37 @@
                     </table>
                 </div>
             </div>
+            {% if current_user and 'admin' in (current_user.permissions|default('[]')|safe) %}
+            <div class="card mt-4">
+              <div class="card-header">
+                <h3 class="card-title">Agent Update Statuses</h3>
+              </div>
+              <div class="card-body">
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th>Client ID</th>
+                      <th>Version</th>
+                      <th>Status</th>
+                      <th>Error Message</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for status in agent_update_statuses %}
+                    <tr>
+                      <td>{{ status.client_id }}</td>
+                      <td>{{ status.version }}</td>
+                      <td>{{ status.status }}</td>
+                      <td>{{ status.error_message or '' }}</td>
+                      <td>{{ status.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% endif %}
         </div>
     </section>
 </div>
@@ -153,25 +207,34 @@
       <form method="post" action="{{ url_for('users.add_user') }}">
         <div class="modal-body">
           <div class="form-group">
-            <label>Username</label>
+            <label>Username <span style="color:red">*</span></label>
             <input type="text" class="form-control" name="username" required>
           </div>
           <div class="form-group">
-            <label>Email</label>
+            <label>Email <span style="color:red">*</span></label>
             <input type="email" class="form-control" name="email" required>
           </div>
           <div class="form-group">
-            <label>Password</label>
+            <label>Bio</label>
+            <textarea class="form-control" name="bio" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Password <span style="color:red">*</span></label>
             <input type="password" class="form-control" name="password" required>
           </div>
           <div class="form-group">
             <label>Permissions</label>
-            <select class="form-control" name="permissions" multiple>
+            <div class="row">
               {% for perm in all_permissions %}
-                <option value="{{ perm }}">{{ perm }}</option>
+                <div class="col-6 col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="permissions" id="perm_{{ perm }}" value="{{ perm }}">
+                    <label class="form-check-label" for="perm_{{ perm }}">{{ perm }}</label>
+                  </div>
+                </div>
               {% endfor %}
-            </select>
-            <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple permissions.</small>
+            </div>
+            <small class="form-text text-muted">Select the permissions to grant this user.</small>
           </div>
         </div>
         <div class="modal-footer">

@@ -1,0 +1,398 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Task Statistics {% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Task Statistics</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item">Monitoring</li>
+                        <li class="breadcrumb-item active">Task Statistics</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Overview Cards -->
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3 id="totalTasks">0</h3>
+                            <p>Total Tasks</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3 id="successRate">0%</h3>
+                            <p>Success Rate</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3 id="avgDuration">0s</h3>
+                            <p>Avg Duration</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3 id="failureRate">0%</h3>
+                            <p>Failure Rate</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row">
+                <!-- Task Distribution Chart -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Distribution</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="taskDistributionChart" style="min-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Timeline Chart -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Timeline</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="taskTimelineChart" style="min-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Statistics Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Task Statistics</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" id="refreshStats">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button type="button" class="btn btn-tool" id="exportStats">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="statsTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Task Name</th>
+                                    <th>Total Executions</th>
+                                    <th>Success Rate</th>
+                                    <th>Avg Duration</th>
+                                    <th>Last Run</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Task statistics will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Details Modal -->
+            <div class="modal fade" id="taskDetailsModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Task Details</h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Task Information</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Name</th>
+                                            <td id="taskName">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Type</th>
+                                            <td id="taskType">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Schedule</th>
+                                            <td id="taskSchedule">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Performance Metrics</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Success Rate</th>
+                                            <td id="taskSuccessRate">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Avg Duration</th>
+                                            <td id="taskAvgDuration">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Last Run</th>
+                                            <td id="taskLastRun">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <h6>Recent Executions</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="taskExecutions">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Start Time</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                            <th>Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Task executions will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize charts
+    const taskDistributionChart = new Chart(
+        document.getElementById('taskDistributionChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#17a2b8',
+                        '#28a745',
+                        '#ffc107',
+                        '#dc3545'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        }
+    );
+
+    const taskTimelineChart = new Chart(
+        document.getElementById('taskTimelineChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Success',
+                    data: [],
+                    borderColor: '#28a745',
+                    fill: false
+                }, {
+                    label: 'Failed',
+                    data: [],
+                    borderColor: '#dc3545',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        }
+    );
+
+    // Initialize DataTable
+    const statsTable = $('#statsTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: '/monitoring/tasks/stats/data',
+        columns: [
+            { data: 'name' },
+            { data: 'total_executions' },
+            { 
+                data: 'success_rate',
+                render: function(data) {
+                    return `${data}%`;
+                }
+            },
+            { data: 'avg_duration' },
+            { data: 'last_run' },
+            {
+                data: 'status',
+                render: function(data) {
+                    const colors = {
+                        'active': 'success',
+                        'inactive': 'secondary',
+                        'failed': 'danger'
+                    };
+                    return `<span class="badge badge-${colors[data] || 'secondary'}">${data}</span>`;
+                }
+            },
+            {
+                data: null,
+                render: function(data) {
+                    return `
+                        <button class="btn btn-sm btn-info view-task" data-task="${data.name}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning retry-task" data-task="${data.name}">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    `;
+                }
+            }
+        ],
+        order: [[0, 'asc']],
+        pageLength: 10
+    });
+
+    // Update overview metrics
+    function updateMetrics() {
+        $.get('/monitoring/tasks/metrics', function(data) {
+            $('#totalTasks').text(data.total_tasks);
+            $('#successRate').text(`${data.success_rate}%`);
+            $('#avgDuration').text(`${data.avg_duration}s`);
+            $('#failureRate').text(`${data.failure_rate}%`);
+
+            // Update distribution chart
+            taskDistributionChart.data.labels = data.distribution.labels;
+            taskDistributionChart.data.datasets[0].data = data.distribution.data;
+            taskDistributionChart.update();
+
+            // Update timeline chart
+            taskTimelineChart.data.labels = data.timeline.labels;
+            taskTimelineChart.data.datasets[0].data = data.timeline.success;
+            taskTimelineChart.data.datasets[1].data = data.timeline.failed;
+            taskTimelineChart.update();
+        });
+    }
+
+    // View task details
+    $('#statsTable').on('click', '.view-task', function() {
+        const taskName = $(this).data('task');
+        $.get(`/monitoring/tasks/${taskName}`, function(data) {
+            $('#taskName').text(data.name);
+            $('#taskType').text(data.type);
+            $('#taskSchedule').text(data.schedule);
+            $('#taskSuccessRate').text(`${data.success_rate}%`);
+            $('#taskAvgDuration').text(`${data.avg_duration}s`);
+            $('#taskLastRun').text(data.last_run);
+            
+            // Update executions table
+            const executionsHtml = data.recent_executions.map(exec => `
+                <tr>
+                    <td>${exec.id}</td>
+                    <td>${exec.start_time}</td>
+                    <td>${exec.duration}s</td>
+                    <td>
+                        <span class="badge badge-${exec.status === 'success' ? 'success' : 'danger'}">
+                            ${exec.status}
+                        </span>
+                    </td>
+                    <td>${exec.result || '-'}</td>
+                </tr>
+            `).join('');
+            $('#taskExecutions tbody').html(executionsHtml);
+            
+            $('#taskDetailsModal').modal('show');
+        });
+    });
+
+    // Retry failed task
+    $('#statsTable').on('click', '.retry-task', function() {
+        const taskName = $(this).data('task');
+        if (confirm(`Are you sure you want to retry task ${taskName}?`)) {
+            $.post(`/monitoring/tasks/${taskName}/retry`, function() {
+                toastr.success(`Task ${taskName} queued for retry`);
+                statsTable.ajax.reload();
+            });
+        }
+    });
+
+    // Refresh data
+    $('#refreshStats').on('click', function() {
+        statsTable.ajax.reload();
+        updateMetrics();
+    });
+
+    // Export statistics
+    $('#exportStats').on('click', function() {
+        window.location.href = '/monitoring/tasks/stats/export';
+    });
+
+    // Initial load
+    updateMetrics();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        statsTable.ajax.reload(null, false);
+        updateMetrics();
+    }, 30000);
+});
+</script>
+{% endblock %} 

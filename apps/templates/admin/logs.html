@@ -1,0 +1,230 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} System Logs {% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>System Logs</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item">Administration</li>
+                        <li class="breadcrumb-item active">System Logs</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Log Filters -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Log Filters</h3>
+                </div>
+                <div class="card-body">
+                    <form id="logFiltersForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="logType">Log Type</label>
+                                    <select class="form-control" id="logType">
+                                        <option value="all">All Logs</option>
+                                        <option value="task">Task Logs</option>
+                                        <option value="system">System Logs</option>
+                                        <option value="security">Security Logs</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="logLevel">Log Level</label>
+                                    <select class="form-control" id="logLevel">
+                                        <option value="all">All Levels</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                        <option value="CRITICAL">CRITICAL</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="dateRange">Date Range</label>
+                                    <input type="text" class="form-control" id="dateRange">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="searchQuery">Search</label>
+                                    <input type="text" class="form-control" id="searchQuery" placeholder="Search in logs...">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <button type="button" class="btn btn-secondary" id="clearFilters">Clear Filters</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Log Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Log Entries</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" id="refreshLogs">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button type="button" class="btn btn-tool" id="exportLogs">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table id="logsTable" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Level</th>
+                                <th>Message</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Log entries will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal fade" id="logDetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre id="logDetails" class="bg-light p-3"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+$(document).ready(function() {
+    // Initialize date range picker
+    $('#dateRange').daterangepicker({
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear'
+        }
+    });
+
+    $('#dateRange').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+    });
+
+    $('#dateRange').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+    });
+
+    // Initialize DataTable
+    const logsTable = $('#logsTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '/admin/logs/data',
+            data: function(d) {
+                return {
+                    ...d,
+                    type: $('#logType').val(),
+                    level: $('#logLevel').val(),
+                    dateRange: $('#dateRange').val(),
+                    search: $('#searchQuery').val()
+                };
+            }
+        },
+        columns: [
+            { data: 'timestamp' },
+            { data: 'type' },
+            { 
+                data: 'level',
+                render: function(data) {
+                    const colors = {
+                        'INFO': 'info',
+                        'WARNING': 'warning',
+                        'ERROR': 'danger',
+                        'CRITICAL': 'danger'
+                    };
+                    return `<span class="badge badge-${colors[data] || 'secondary'}">${data}</span>`;
+                }
+            },
+            { data: 'message' },
+            {
+                data: 'details',
+                render: function(data) {
+                    return data ? '<button class="btn btn-sm btn-info view-details">View</button>' : '';
+                }
+            }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25
+    });
+
+    // View log details
+    $('#logsTable').on('click', '.view-details', function() {
+        const data = logsTable.row($(this).parents('tr')).data();
+        $('#logDetails').text(JSON.stringify(data.details, null, 2));
+        $('#logDetailsModal').modal('show');
+    });
+
+    // Apply filters
+    $('#logFiltersForm').on('submit', function(e) {
+        e.preventDefault();
+        logsTable.ajax.reload();
+    });
+
+    // Clear filters
+    $('#clearFilters').on('click', function() {
+        $('#logFiltersForm')[0].reset();
+        $('#dateRange').val('');
+        logsTable.ajax.reload();
+    });
+
+    // Refresh logs
+    $('#refreshLogs').on('click', function() {
+        logsTable.ajax.reload();
+    });
+
+    // Export logs
+    $('#exportLogs').on('click', function() {
+        const filters = {
+            type: $('#logType').val(),
+            level: $('#logLevel').val(),
+            dateRange: $('#dateRange').val(),
+            search: $('#searchQuery').val()
+        };
+        
+        window.location.href = `/admin/logs/export?${new URLSearchParams(filters)}`;
+    });
+});
+</script>
+{% endblock %} 

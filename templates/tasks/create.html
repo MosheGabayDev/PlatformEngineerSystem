@@ -1,0 +1,291 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Edit' if task else 'Create' }} Task{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>{{ 'Edit' if task else 'Create' }} Task</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" id="taskForm" data-is-new-task="{{ 'true' if not task else 'false' }}">
+                                {% if task %}
+                                <input type="hidden" name="task_id" value="{{ task.id }}">
+                                {% endif %}
+                                <div class="form-group">
+                                    <label for="name">Task Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required value="{{ task.name if task else '' }}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="reason">Reason</label>
+                                    <textarea class="form-control" id="reason" name="reason" rows="2">{{ task.reason if task else '' }}</textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Commands</label>
+                                    <div id="commandsList" class="sortable">
+                                        {% if task %}
+                                            {% for task_command in task.commands %}
+                                                <div class="command-item card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <div class="form-group">
+                                                                    <label>Command</label>
+                                                                    <select class="form-control command-select" required name="command_ids[]">
+                                                                        <option value="">Select a command...</option>
+                                                                        {% for cmd in commands %}
+                                                                        <option value="{{ cmd.id }}" data-text="{{ cmd.command_text }}" {% if cmd.id == task_command.command_id %}selected{% endif %}>{{ cmd.name }}</option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="form-group">
+                                                                    <label>Output Regex Pattern</label>
+                                                                    <input type="text" class="form-control regex-pattern" name="regex_patterns[]" placeholder="Enter regex pattern to validate output" value="{{ task_command.output_regex or '' }}">
+                                                                    <small class="form-text text-muted">Leave empty if no validation needed</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-12">
+                                                                <button type="button" class="btn btn-danger btn-sm" onclick="removeCommand(this)">
+                                                                    <i class="fas fa-trash"></i> Remove
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    <button type="button" class="btn btn-primary mt-2" onclick="addCommand()">
+                                        <i class="fas fa-plus"></i> Add Command
+                                    </button>
+                                </div>
+                                
+                                <input type="hidden" name="commands" id="commandsData">
+                                
+                                <div class="form-group mt-4">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> {{ 'Update' if task else 'Create' }} Task
+                                    </button>
+                                    <a href="{{ url_for('table_blueprint.model_dt', aPath='tasks') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Command Template -->
+<template id="commandTemplate">
+    <div class="command-item card mb-3">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Command</label>
+                        <select class="form-control command-select" required name="command_ids[]">
+                            <option value="">Select a command...</option>
+                            {% for cmd in commands %}
+                            <option value="{{ cmd.id }}" data-text="{{ cmd.command_text }}">{{ cmd.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Output Regex Pattern</label>
+                        <input type="text" class="form-control regex-pattern" name="regex_patterns[]" placeholder="Enter regex pattern to validate output">
+                        <small class="form-text text-muted">Leave empty if no validation needed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeCommand(this)">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<script>
+console.log("JS Loaded!");
+let commandCounter = 0;
+
+function addCommand(commandData = null) {
+    console.log('Adding new command:', commandData);
+    const template = document.getElementById('commandTemplate');
+    const commandsList = document.getElementById('commandsList');
+    const clone = template.content.cloneNode(true);
+    
+    const commandItem = clone.querySelector('.command-item');
+    commandItem.id = `command-${commandCounter}`;
+    
+    if (commandData) {
+        const commandSelect = commandItem.querySelector('.command-select');
+        const regexPattern = commandItem.querySelector('.regex-pattern');
+        
+        commandSelect.value = commandData.command_id;
+        regexPattern.value = commandData.output_regex || '';
+        console.log('Set command data:', commandData);
+    }
+    
+    commandsList.appendChild(clone);
+    commandCounter++;
+    updateCommandsData();
+}
+
+function removeCommand(button) {
+    console.log('Removing command');
+    const commandItem = button.closest('.command-item');
+    commandItem.remove();
+    updateCommandsData();
+}
+
+function updateCommandsData() {
+    const commands = [];
+    const commandItems = document.querySelectorAll('.command-item');
+    console.log('Found command items:', commandItems.length);
+    
+    commandItems.forEach((item, index) => {
+        const commandSelect = item.querySelector('.command-select');
+        const regexPattern = item.querySelector('.regex-pattern');
+        
+        if (commandSelect.value) {
+            const selectedOption = commandSelect.options[commandSelect.selectedIndex];
+            const commandText = selectedOption.dataset.text;
+            
+            console.log(`Command ${index}:`, {
+                commandId: commandSelect.value,
+                commandText: commandText,
+                regex: regexPattern.value
+            });
+            
+            commands.push({
+                command_id: commandSelect.value,
+                command_text: commandText,
+                output_regex: regexPattern.value,
+                order: index
+            });
+        } else {
+            console.log(`Command ${index}: No command selected`);
+        }
+    });
+    
+    const commandsData = JSON.stringify(commands);
+    console.log('Final commands data:', commandsData);
+    document.getElementById('commandsData').value = commandsData;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing form...');
+    
+    const isNewTask = document.getElementById('taskForm').dataset.isNewTask === 'true';
+    if (isNewTask) {
+        console.log('No existing task, adding default command');
+        addCommand();
+    } else {
+        console.log('Loading existing task commands');
+        const commandsList = document.getElementById('commandsList');
+        const existingCommands = commandsList.querySelectorAll('.command-item');
+        existingCommands.forEach(commandItem => {
+            const commandSelect = commandItem.querySelector('.command-select');
+            const regexPattern = commandItem.querySelector('.regex-pattern');
+            const commandData = {
+                command_id: commandSelect.value,
+                output_regex: regexPattern.value
+            };
+            commandItem.remove();
+            addCommand(commandData);
+        });
+    }
+    
+    document.getElementById('taskForm').addEventListener('change', function(e) {
+        console.log('Form changed:', e.target.name, e.target.value);
+        updateCommandsData();
+    });
+    
+    $( "#commandsList" ).sortable({
+        update: function(event, ui) {
+            console.log('Commands reordered');
+            updateCommandsData();
+        }
+    });
+    
+    updateCommandsData();
+    
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('Form submission started');
+        
+        const name = document.getElementById('name').value;
+        console.log('Task name:', name);
+        
+        if (!name) {
+            console.error('Validation failed: No task name provided');
+            alert('Please enter a task name');
+            return;
+        }
+        
+        const commandSelects = document.querySelectorAll('.command-select');
+        let hasSelectedCommand = false;
+        commandSelects.forEach(select => {
+            if (select.value) {
+                hasSelectedCommand = true;
+            }
+        });
+        
+        if (!hasSelectedCommand) {
+            console.error('Validation failed: No command selected');
+            alert('Please select at least one command');
+            return;
+        }
+        
+        updateCommandsData();
+        
+        const formData = new FormData(this);
+        const formDataObj = Object.fromEntries(formData);
+        console.log('Form data before submit:', formDataObj);
+        
+        console.log('Submitting form...');
+        this.submit();
+    });
+});
+</script>
+{% endblock %} 

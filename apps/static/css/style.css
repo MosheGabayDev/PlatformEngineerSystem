@@ -1,0 +1,41 @@
+/* Custom styles */
+.navbar {
+    margin-bottom: 2rem;
+}
+
+.navbar-brand img {
+    margin-right: 0.5rem;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.btn-primary {
+    margin-right: 0.5rem;
+}
+
+.container {
+    padding-top: 1rem;
+}
+
+/* Error pages */
+.error-page {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.error-page h1 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.error-page p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+/* Active nav item */
+.nav-link.active {
+    font-weight: bold;
+} 

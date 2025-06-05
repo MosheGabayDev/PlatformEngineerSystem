@@ -5,7 +5,7 @@ Copyright (c) 2019 - present AppSeed.us
 
 from apps.charts import blueprint
 from flask import render_template
-from apps.models import Product
+from apps.models.products import Product
 
 @blueprint.route('/charts')
 def charts():

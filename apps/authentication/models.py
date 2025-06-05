@@ -7,6 +7,7 @@ from flask_login import UserMixin
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from apps.db import db
+import datetime as dt
 
 class Users(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -20,6 +21,10 @@ class Users(db.Model, UserMixin):
     permissions   = db.Column(db.Text, nullable=True)  # JSON array of permissions
     is_active     = db.Column(db.Boolean, default=True)  # Added for freeze/unfreeze
     readonly_fields = ["id", "username", "email", "oauth_github", "oauth_google"]
+
+    # Add relationship to ApiToken
+    api_token = db.relationship('ApiToken', backref='user', uselist=False, foreign_keys='ApiToken.user_id')
+
     def __init__(self, **kwargs):
         for property, value in kwargs.items():
             if hasattr(value, '__iter__') and not isinstance(value, str):
@@ -39,6 +44,13 @@ class Users(db.Model, UserMixin):
     @classmethod
     def find_by_id(cls, _id: int) -> "Users":
         return cls.query.filter_by(id=_id).first()
+    @classmethod
+    def find_by_api_token(cls, token: str) -> "Users":
+        from apps.models.api_token import ApiToken
+        api_token = ApiToken.query.filter_by(token=token, is_active=True).first()
+        if api_token and (not api_token.expires_at or api_token.expires_at > dt.datetime.now(dt.timezone.utc)):
+            return cls.query.get(api_token.user_id)
+        return None
     def save(self) -> None:
         try:
             db.session.add(self)

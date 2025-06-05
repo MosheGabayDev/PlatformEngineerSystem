@@ -1,0 +1,192 @@
+{% extends "adminlte/base.html" %}
+
+{% block title %}Alerts{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Alerts</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-primary" onclick="checkAlerts()">
+                        <i class="fas fa-sync"></i> Check Alerts
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Alert Statistics -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3 id="totalAlerts">0</h3>
+                                <p>Total Alerts</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3 id="activeAlerts">0</h3>
+                                <p>Active Alerts</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3 id="criticalAlerts">0</h3>
+                                <p>Critical Alerts</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-radiation"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3 id="resolvedAlerts">0</h3>
+                                <p>Resolved Alerts</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Table -->
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Message</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        <!-- Alerts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load alerts on page load
+$(document).ready(function() {
+    loadAlerts();
+    loadAlertStats();
+});
+
+// Load alerts from API
+function loadAlerts() {
+    $.get('/api/alerts', function(alerts) {
+        const tbody = $('#alertsTableBody');
+        tbody.empty();
+        
+        alerts.forEach(alert => {
+            const row = `
+                <tr>
+                    <td>
+                        <span class="badge badge-${getSeverityClass(alert.severity)}">
+                            ${alert.severity}
+                        </span>
+                    </td>
+                    <td>${alert.type}</td>
+                    <td>${alert.title}</td>
+                    <td>${alert.message}</td>
+                    <td>${formatDate(alert.created_at)}</td>
+                    <td>
+                        <span class="badge badge-${alert.is_resolved ? 'success' : 'warning'}">
+                            ${alert.is_resolved ? 'Resolved' : 'Active'}
+                        </span>
+                    </td>
+                    <td>
+                        ${!alert.is_resolved ? `
+                            <button class="btn btn-sm btn-success" onclick="resolveAlert(${alert.id})">
+                                <i class="fas fa-check"></i> Resolve
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    });
+}
+
+// Load alert statistics
+function loadAlertStats() {
+    $.get('/api/alerts/stats', function(stats) {
+        $('#totalAlerts').text(stats.total_alerts);
+        $('#activeAlerts').text(stats.active_alerts);
+        $('#criticalAlerts').text(stats.severity_counts.critical || 0);
+        $('#resolvedAlerts').text(stats.total_alerts - stats.active_alerts);
+    });
+}
+
+// Resolve alert
+function resolveAlert(alertId) {
+    $.ajax({
+        url: `/api/alerts/${alertId}/resolve`,
+        method: 'POST',
+        success: function() {
+            loadAlerts();
+            loadAlertStats();
+            toastr.success('Alert resolved successfully');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to resolve alert');
+        }
+    });
+}
+
+// Check alerts
+function checkAlerts() {
+    $.ajax({
+        url: '/api/alerts/check',
+        method: 'POST',
+        success: function() {
+            loadAlerts();
+            loadAlertStats();
+            toastr.success('Alert check completed');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to check alerts');
+        }
+    });
+}
+
+// Helper functions
+function getSeverityClass(severity) {
+    switch (severity) {
+        case 'critical': return 'danger';
+        case 'error': return 'danger';
+        case 'warning': return 'warning';
+        case 'info': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+</script>
+{% endblock %} 

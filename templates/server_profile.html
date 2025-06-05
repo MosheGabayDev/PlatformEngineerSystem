@@ -1,0 +1,1000 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Server Profile {% endblock %}
+
+<!-- Element injected in the BODY element -->
+{% block body_class %} sidebar-mini {% endblock body_class %}
+
+{% block stylesheets %}
+<!-- Google Font: Source Sans Pro -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+<!-- Theme style -->
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+<!-- DataTables -->
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+<!-- Toastr -->
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/toastr/toastr.min.css') }}">
+<style>
+    .command-suggestion {
+        cursor: pointer;
+        background-color: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+    
+    .command-suggestion:hover {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    #cliOutput pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>
+                        <i class="fas fa-search-plus mr-2"></i>
+                        Server Identification
+                        <small class="text-muted">Complete Server Profile</small>
+                    </h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{ url_for('server_profiles.server_list') }}">Servers</a></li>
+                        <li class="breadcrumb-item">Identify</li>
+                        <li class="breadcrumb-item active">{{ server.name }}</li>
+                    </ol>
+                </div>
+            </div>
+            <!-- Server Quick Status Banner -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert {% if server.is_active %}alert-success{% else %}alert-danger{% endif %} alert-dismissible">
+                        <h5>
+                            <i class="icon fas {% if server.is_active %}fa-check{% else %}fa-exclamation-triangle{% endif %}"></i> 
+                            Server Status: {{ "ONLINE" if server.is_active else "OFFLINE" }}
+                        </h5>
+                        <strong>{{ server.name }}</strong> - Last seen: {{ server.last_seen | to_local_time('%d/%m/%Y at %H:%M') if server.last_seen else 'Never' }}
+                        {% if server.public_ip or server.local_ip %}
+                        | IP: {{ server.public_ip or server.local_ip }}
+                        {% endif %}
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Profile sidebar -->
+                <div class="col-md-3">
+                    <div class="card card-primary card-outline">
+                        <div class="card-body box-profile">
+                            <div class="text-center">
+                                <div class="profile-user-img img-fluid img-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 128px; height: 128px; background: linear-gradient(45deg, #007bff, #6c757d); margin: 0 auto; border-radius: 50%;">
+                                    <i class="fas fa-server text-white" style="font-size: 48px;"></i>
+                                </div>
+                            </div>
+                            <h3 class="profile-username text-center">{{ server.name }}</h3>
+                            <p class="text-muted text-center">{{ server.public_ip or server.local_ip or 'No IP Address' }}</p>
+                            
+                            <ul class="list-group list-group-unbordered mb-3">
+                                <li class="list-group-item">
+                                    <b>Status</b>
+                                    <span class="float-right">
+                                        <span class="badge {% if server.is_active %}badge-success{% else %}badge-danger{% endif %}">
+                                            {{ "Online" if server.is_active else "Offline" }}
+                                        </span>
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Last Seen</b>
+                                    <span class="float-right text-sm">
+                                        {{ server.last_seen | to_local_time('%d/%m/%Y %H:%M') if server.last_seen else 'Never' }}
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>CPU</b>
+                                    <span class="float-right text-sm">{{ server.cpu_type or 'Unknown' }}</span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>RAM</b>
+                                    <span class="float-right text-sm">
+                                        {{ "%.1f GB" % server.ram_gb if server.ram_gb else 'Unknown' }}
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Disk Space</b>
+                                    <span class="float-right text-sm">
+                                        {% if server.disk_size_gb %}
+                                            {{ "%.1f GB" % server.disk_size_gb }}
+                                            {% if server.disk_free_gb %}
+                                                <br><small class="text-muted">({{ "%.1f GB" % server.disk_free_gb }} free)</small>
+                                            {% endif %}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Internet Access</b>
+                                    <span class="float-right">
+                                        <span class="badge {% if server.internet_access %}badge-success{% else %}badge-warning{% endif %}">
+                                            {{ "Yes" if server.internet_access else "No" }}
+                                        </span>
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>API Token</b>
+                                    <span class="float-right">
+                                        {% if current_user.api_token and current_user.api_token.is_active %}
+                                            <span class="badge badge-success">Active</span>
+                                            {% if current_user.api_token.expires_at %}
+                                                <small class="text-muted">Expires: {{ current_user.api_token.expires_at.strftime('%Y-%m-%d') }}</small>
+                                            {% else %}
+                                                <small class="text-muted">Never expires</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge badge-secondary">None</span>
+                                        {% endif %}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Server Identification Card -->
+                    <div class="card card-success card-outline">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-id-card mr-2"></i>
+                                Server Identity
+                            </h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                <strong>Server Identified!</strong><br>
+                                <small>Complete profile loaded successfully</small>
+                            </div>
+                            <a href="{{ url_for('server_profiles.server_list') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-arrow-left mr-1"></i> Back to Server List
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Server Stats Card -->
+                    <div class="card card-info card-outline">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-pie mr-2"></i>
+                                Quick Stats
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <div class="small-box bg-info">
+                                        <div class="inner">
+                                            <h3>{{ command_history|length }}</h3>
+                                            <p>Commands (60d)</p>
+                                        </div>
+                                        <div class="icon">
+                                            <i class="fas fa-terminal"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main content area -->
+                <div class="col-md-9">
+                    <div class="card">
+                        <div class="card-header p-2">
+                            <ul class="nav nav-pills">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#overview" data-toggle="tab">
+                                        <i class="fas fa-info-circle mr-1"></i>Overview
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#agent_config" data-toggle="tab">
+                                        <i class="fas fa-cogs mr-1"></i>Agent Configurations
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#commands" data-toggle="tab">
+                                        <i class="fas fa-history mr-1"></i>Command History
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#system" data-toggle="tab">
+                                        <i class="fas fa-cogs mr-1"></i>System Info
+                                    </a>
+                                </li>
+                                {% if 'admin' in current_user.permissions|default('[]')|safe %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#cli" data-toggle="tab">
+                                        <i class="fas fa-terminal mr-1"></i>CLI Commands
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <!-- Overview Tab -->
+                                <div class="active tab-pane" id="overview">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-network-wired mr-2"></i>Network Information</h5>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Local IP:</strong></td>
+                                                    <td>{{ server.local_ip or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Public IP:</strong></td>
+                                                    <td>{{ server.public_ip or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>DNS Servers:</strong></td>
+                                                    <td>{{ server.dns_servers or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>DHCP Server:</strong></td>
+                                                    <td>{{ server.dhcp_server or 'Unknown' }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-user-clock mr-2"></i>Login Information</h5>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Last Login:</strong></td>
+                                                    <td>{{ server.last_login_time.strftime('%d/%m/%Y %H:%M') if server.last_login_time else 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Last User:</strong></td>
+                                                    <td>{{ server.last_login_user or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Created:</strong></td>
+                                                    <td>{{ server.created_at.strftime('%d/%m/%Y %H:%M') if server.created_at else 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Last Update:</strong></td>
+                                                    <td>{{ server.updated_at.strftime('%d/%m/%Y %H:%M') if server.updated_at else 'Unknown' }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if server.running_services %}
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <h5><i class="fas fa-play-circle mr-2"></i>Running Services</h5>
+                                            <div class="alert alert-info">
+                                                {{ server.running_services }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Agent Configurations Tab -->
+                                <div class="tab-pane" id="agent_config">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-clock mr-2"></i>Polling Intervals</h5>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Command Polling Interval:</strong></td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" id="clientPollInterval" 
+                                                                   value="{{ server.client_poll_interval_seconds or 20 }}" min="0.5" max="10800">
+                                                            <div class="input-group-append">
+                                                                <span class="input-group-text">seconds</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="custom-control custom-switch mt-2">
+                                                            <input type="checkbox" class="custom-control-input" id="temporaryShortInterval" 
+                                                                   {% if server.temporary_short_interval %}checked{% endif %}>
+                                                            <label class="custom-control-label" for="temporaryShortInterval">
+                                                                Enable temporary short interval
+                                                            </label>
+                                                        </div>
+                                                        <div id="temporaryIntervalDuration" class="mt-2" style="display: none;">
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" id="temporaryIntervalMinutes" 
+                                                                       value="5" min="1" max="60">
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">minutes</span>
+                                                                </div>
+                                                            </div>
+                                                            <small class="text-muted">After this time, interval will return to normal (20-10800 seconds)</small>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>System Info Update Interval:</strong></td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" id="updateInterval" 
+                                                                   value="{{ server.update_interval_seconds or 300 }}" min="60" max="86400">
+                                                            <div class="input-group-append">
+                                                                <span class="input-group-text">seconds</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-shield-alt mr-2"></i>Security Settings</h5>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Run Commands as Admin:</strong></td>
+                                                    <td>
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="runAsAdmin" 
+                                                                   {% if server.run_as_admin_default %}checked{% endif %}>
+                                                            <label class="custom-control-label" for="runAsAdmin"></label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Run in Sandbox:</strong></td>
+                                                    <td>
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="runInSandbox" 
+                                                                   {% if server.run_in_sandbox_default %}checked{% endif %}>
+                                                            <label class="custom-control-label" for="runInSandbox"></label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Max Output Lines:</strong></td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" id="maxOutputLines" 
+                                                                   value="{{ server.max_output_lines or 1000 }}" min="10" max="10000">
+                                                            <div class="input-group-append">
+                                                                <span class="input-group-text">lines</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-primary" id="saveAgentConfig">
+                                                <i class="fas fa-save mr-1"></i>Save Configuration
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Commands Tab -->
+                                <div class="tab-pane" id="commands">
+                                    {% if command_history %}
+                                    <table id="command-history" class="table table-bordered table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Command</th>
+                                                <th>Status</th>
+                                                <th>Duration</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for command in command_history %}
+                                            <tr>
+                                                <td>{{ command.executed_time.strftime('%d/%m/%Y %H:%M:%S') if command.executed_time else '' }}</td>
+                                                <td>{{ command.display_command_name }}</td>
+                                                <td>
+                                                    <span class="badge {% if command.run_status == 'success' %}badge-success{% elif command.run_status == 'failed' %}badge-danger{% elif command.run_status == 'executing' %}badge-warning{% else %}badge-info{% endif %}">
+                                                        {{ command.run_status|title }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ "%.2f sec" % command.duration_seconds if command.duration_seconds else '' }}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#outputModal{{ command.id }}">
+                                                        <i class="fas fa-terminal"></i> View Output
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    {% else %}
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        No command history found for this server.
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- System Info Tab -->
+                                <div class="tab-pane" id="system">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-microchip mr-2"></i>Hardware Specs</h5>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>CPU Type:</strong></td>
+                                                    <td>{{ server.cpu_type or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>RAM:</strong></td>
+                                                    <td>{{ "%.2f GB" % server.ram_gb if server.ram_gb else 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Disk:</strong></td>
+                                                    <td>{{ "%.2f GB" % server.disk_size_gb if server.disk_size_gb else 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Free Space:</strong></td>
+                                                    <td>{{ "%.2f GB" % server.disk_free_gb if server.disk_free_gb else 'Unknown' }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5><i class="fas fa-ethernet mr-2"></i>Network Ports</h5>
+                                            {% if server.listening_ports %}
+                                            <div class="alert alert-secondary">
+                                                {{ server.listening_ports }}
+                                            </div>
+                                            {% else %}
+                                            <div class="alert alert-warning">
+                                                No listening ports information available.
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CLI Commands Tab -->
+                                {% if 'admin' in current_user.permissions|default('[]')|safe %}
+                                <div class="tab-pane" id="cli">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h5><i class="fas fa-terminal mr-2"></i>Command Line Interface</h5>
+                                            {% if not current_user.api_token or not current_user.api_token.is_active %}
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                <strong>Warning:</strong> You need an active API token to execute commands. Please create an API token first.
+                                            </div>
+                                            {% else %}
+                                            <div class="card card-dark">
+                                                <div class="card-header">
+                                                    <h3 class="card-title">Execute Commands</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    <form id="cliForm">
+                                                        <div class="form-group">
+                                                            <label for="command">Command:</label>
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control" id="command" name="command" placeholder="Enter command to execute..." autocomplete="off">
+                                                                <div class="input-group-append">
+                                                                    <button type="submit" class="btn btn-primary">
+                                                                        <i class="fas fa-play mr-1"></i>Execute
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-check mb-3">
+                                                            <input type="checkbox" class="form-check-input" id="runAsAdmin" name="run_as_admin">
+                                                            <label class="form-check-label" for="runAsAdmin">
+                                                                Run as administrator
+                                                            </label>
+                                                        </div>
+                                                    </form>
+                                                    
+                                                    <div id="cliOutput" class="mt-3" style="display: none;">
+                                                        <h6>Output:</h6>
+                                                        <pre class="bg-dark text-light p-3 rounded" id="outputContent" style="max-height: 400px; overflow-y: auto;"></pre>
+                                                    </div>
+                                                    
+                                                    <div id="cliLoading" class="text-center mt-3" style="display: none;">
+                                                        <div class="spinner-border text-primary" role="status">
+                                                            <span class="sr-only">Loading...</span>
+                                                        </div>
+                                                        <p class="mt-2">Executing command...</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <div class="card card-info">
+                                                <div class="card-header">
+                                                    <h3 class="card-title">Common Commands</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <h6>System Information:</h6>
+                                                            <ul class="list-unstyled">
+                                                                <li><code class="command-suggestion" data-command="systeminfo">systeminfo</code> - System information</li>
+                                                                <li><code class="command-suggestion" data-command="tasklist">tasklist</code> - Running processes</li>
+                                                                <li><code class="command-suggestion" data-command="ipconfig /all">ipconfig /all</code> - Network configuration</li>
+                                                                <li><code class="command-suggestion" data-command="netstat -an">netstat -an</code> - Network connections</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <h6>File System:</h6>
+                                                            <ul class="list-unstyled">
+                                                                <li><code class="command-suggestion" data-command="dir">dir</code> - List directory contents</li>
+                                                                <li><code class="command-suggestion" data-command="wmic logicaldisk get size,freespace,caption">wmic logicaldisk get size,freespace,caption</code> - Disk usage</li>
+                                                                <li><code class="command-suggestion" data-command="whoami">whoami</code> - Current user</li>
+                                                                <li><code class="command-suggestion" data-command="hostname">hostname</code> - Computer name</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="alert alert-warning mt-3">
+                                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                        <strong>Warning:</strong> Commands will be executed on the remote server. Use with caution!
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Output Modals -->
+{% for command in command_history %}
+<div class="modal fade" id="outputModal{{ command.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Command Output</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre class="bg-dark text-light p-3 rounded">{{ command.output }}</pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock content %}
+
+{% block javascripts %}
+<!-- jQuery -->
+<script src="{{ url_for('static', filename='assets/plugins/jquery/jquery.min.js') }}"></script>
+<!-- Bootstrap 4 -->
+<script src="{{ url_for('static', filename='assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<!-- AdminLTE App -->
+<script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+<!-- DataTables & Plugins -->
+<script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+<!-- Toastr -->
+<script src="{{ url_for('static', filename='assets/plugins/toastr/toastr.min.js') }}"></script>
+
+<script>
+    // Debug mode configuration
+    const DEBUG_MODE = true;    
+    // Debug logging function
+    function debugLog(...args) {
+        if (DEBUG_MODE) {
+            console.log('[DEBUG]', ...args);
+        }
+    }
+
+    $(document).ready(function() {
+        // Initialize toastr
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "3000"
+        };
+
+        // Initialize DataTable
+        $('#command-history').DataTable({
+            "order": [[0, "desc"]],
+            "responsive": true,
+            "lengthChange": true,
+            "autoWidth": false,
+            "language": {
+                "emptyTable": "No data available in table",
+                "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                "infoEmpty": "Showing 0 to 0 of 0 entries",
+                "infoFiltered": "(filtered from _MAX_ total entries)",
+                "lengthMenu": "Show _MENU_ entries",
+                "loadingRecords": "Loading...",
+                "processing": "Processing...",
+                "search": "Search:",
+                "zeroRecords": "No matching records found",
+                "paginate": {
+                    "first": "First",
+                    "last": "Last",
+                    "next": "Next",
+                    "previous": "Previous"
+                }
+            }
+        });
+
+        // Handle temporary short interval toggle
+        $('#temporaryShortInterval').change(function() {
+            const isChecked = $(this).is(':checked');
+            $('#temporaryIntervalDuration').toggle(isChecked);
+            if (isChecked) {
+                // When enabling temporary interval, validate current value
+                const currentInterval = parseFloat($('#clientPollInterval').val());
+                if (currentInterval < 0.5) {
+                    $('#clientPollInterval').val('0.5');
+                }
+            } else {
+                // When disabling temporary interval, ensure normal range
+                const currentInterval = parseFloat($('#clientPollInterval').val());
+                if (currentInterval < 20) {
+                    $('#clientPollInterval').val('20');
+                }
+            }
+        });
+
+        // Handle saving agent configuration
+        $('#saveAgentConfig').click(function() {
+            // Check if user has an API token
+            const apiToken = '{{ current_user.api_token.token if current_user.api_token and current_user.api_token.is_active else "" }}';
+            if (!apiToken) {
+                console.error('No API token found. Please create an API token first.');
+                toastr.error('No API token found. Please create an API token first.');
+                return;
+            }
+
+            // Log token details (masked for security)
+            const maskedToken = apiToken.substring(0, 8) + '...' + apiToken.substring(apiToken.length - 4);
+            debugLog('Using API token:', maskedToken);
+            debugLog('Token active:', '{{ current_user.api_token.is_active if current_user.api_token else false }}');
+            debugLog('Token expires:', '{{ current_user.api_token.expires_at if current_user.api_token and current_user.api_token.expires_at else "Never" }}');
+            debugLog('Token permissions:', '{{ current_user.api_token.permissions if current_user.api_token else "None" }}');
+
+            const $btn = $(this);
+            const originalText = $btn.html();
+            $btn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
+
+            // Get values from form
+            const clientPollInterval = parseFloat($('#clientPollInterval').val());
+            const updateInterval = parseInt($('#updateInterval').val());
+            const maxOutputLines = parseInt($('#maxOutputLines').val());
+            const temporaryShortInterval = $('#temporaryShortInterval').is(':checked');
+            const temporaryIntervalMinutes = parseInt($('#temporaryIntervalMinutes').val());
+
+            debugLog('Raw input values:', {
+                clientPollInterval: $('#clientPollInterval').val(),
+                updateInterval: $('#updateInterval').val(),
+                maxOutputLines: $('#maxOutputLines').val(),
+                temporaryShortInterval: temporaryShortInterval,
+                temporaryIntervalMinutes: temporaryIntervalMinutes
+            });
+
+            // Validate values
+            if (isNaN(clientPollInterval) || clientPollInterval < 0.5 || clientPollInterval > 10800) {
+                toastr.error('Command Polling Interval must be between 0.5 and 10800 seconds');
+                $btn.html(originalText).prop('disabled', false);
+                return;
+            }
+
+            if (isNaN(updateInterval) || updateInterval < 30 || updateInterval > 86400) {
+                toastr.error('Update Interval must be between 30 and 86400 seconds');
+                $btn.html(originalText).prop('disabled', false);
+                return;
+            }
+
+            if (isNaN(maxOutputLines) || maxOutputLines < 10 || maxOutputLines > 10000) {
+                toastr.error('Max Output Lines must be between 10 and 10000');
+                $btn.html(originalText).prop('disabled', false);
+                return;
+            }
+
+            // Prepare configuration object
+            const config = {
+                client_poll_interval_seconds: clientPollInterval,
+                update_interval_seconds: updateInterval,
+                run_as_admin_default: true,
+                run_in_sandbox_default: false,
+                max_output_lines: maxOutputLines,
+                temporary_short_interval: temporaryShortInterval,
+                temporary_interval_end_time: temporaryShortInterval ? (() => {
+                    const endTime = new Date();
+                    endTime.setMinutes(endTime.getMinutes() + temporaryIntervalMinutes);
+                    return endTime.toISOString();
+                })() : null
+            };
+
+            // Add temporary interval settings
+            if (temporaryShortInterval) {
+                const endTime = new Date();
+                endTime.setMinutes(endTime.getMinutes() + parseInt(temporaryIntervalMinutes));
+                config.temporary_short_interval = true;
+                config.temporary_interval_end_time = endTime.toISOString().slice(0, 19).replace('T', ' ');
+            } else {
+                config.temporary_short_interval = false;
+                config.temporary_interval_end_time = null;
+            }
+
+            debugLog('Final configuration to save:', config);
+
+            // Save configuration
+            $.ajax({
+                url: `/api/servers/{{ server.id }}/client_config`,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + apiToken
+                },
+                data: JSON.stringify(config),
+                success: function(response) {
+                    debugLog('Configuration saved successfully:', response);
+                    toastr.success('Configuration saved successfully');
+                },
+                error: function(xhr, status, error) {
+                    debugLog('Failed to save configuration:', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseJSON,
+                        statusCode: xhr.status,
+                        statusText: xhr.statusText,
+                        requestData: config
+                    });
+
+                    let errorMessage = 'Failed to save configuration: ';
+                    if (xhr.status === 401) {
+                        errorMessage += 'Unauthorized - Please check your API token';
+                    } else if (xhr.status === 403) {
+                        errorMessage += 'Forbidden - You do not have permission to update server configuration';
+                    } else if (xhr.status === 404) {
+                        errorMessage += 'Server not found';
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage += xhr.responseJSON.error;
+                    } else {
+                        errorMessage += 'Unknown error occurred';
+                    }
+
+                    toastr.error(errorMessage);
+                },
+                complete: function() {
+                    // Restore button state
+                    $btn.html(originalText).prop('disabled', false);
+                }
+            });
+        });
+
+        // Handle CLI command execution
+        $('#cliForm').submit(function(event) {
+            event.preventDefault();
+            const command = $('#command').val();
+            if (!command) {
+                console.error('No command provided');
+                toastr.error('Please enter a command to execute');
+                return;
+            }
+
+            // Check if user has an API token
+            const apiToken = '{{ current_user.api_token.token if current_user.api_token and current_user.api_token.is_active else "" }}';
+            if (!apiToken) {
+                console.error('No API token found. Please create an API token first.');
+                toastr.error('No API token found. Please create an API token first.');
+                return;
+            }
+
+            // Log token details (masked for security)
+            const maskedToken = apiToken.substring(0, 8) + '...' + apiToken.substring(apiToken.length - 4);
+            debugLog('Using API token:', maskedToken);
+            debugLog('Token active:', '{{ current_user.api_token.is_active if current_user.api_token else false }}');
+            debugLog('Token expires:', '{{ current_user.api_token.expires_at if current_user.api_token and current_user.api_token.expires_at else "Never" }}');
+            debugLog('Token permissions:', '{{ current_user.api_token.permissions if current_user.api_token else "None" }}');
+
+            const runAsAdmin = $('#runAsAdmin').is(':checked');
+            debugLog('Command details:', {
+                command: command,
+                runAsAdmin: runAsAdmin,
+                serverId: '{{ server.id }}'
+            });
+
+            // Show loading state
+            $('#cliLoading').show();
+            $('#cliOutput').hide();
+
+            // Send command to server
+            $.ajax({
+                url: `/api/servers/{{ server.id }}/run_command`,
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + apiToken
+                },
+                data: JSON.stringify({
+                    command_text: command,
+                    created_by: '{{ current_user.id }}',
+                    reason: 'Manual CLI execution'
+                }),
+                success: function(response) {
+                    debugLog('Command submitted successfully:', response);
+                    // Show output
+                    $('#cliOutput').show();
+                    $('#outputContent').text('Command submitted successfully. Waiting for execution...');
+                    
+                    // Start polling for command result
+                    const commandHistoryId = response.command_history_id;
+                    pollCommandResult(commandHistoryId, apiToken, maskedToken);
+                },
+                error: function(xhr, status, error) {
+                    debugLog('Failed to submit command:', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseJSON,
+                        statusCode: xhr.status,
+                        statusText: xhr.statusText,
+                        requestData: {
+                            url: `/api/servers/{{ server.id }}/run_command`,
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + maskedToken
+                            },
+                            data: {
+                                command_text: command,
+                                created_by: '{{ current_user.id }}',
+                                reason: 'Manual CLI execution'
+                            }
+                        }
+                    });
+
+                    let errorMessage = 'Failed to submit command: ';
+                    if (xhr.status === 401) {
+                        errorMessage += 'Unauthorized - Please check your API token';
+                    } else if (xhr.status === 403) {
+                        errorMessage += 'Forbidden - You do not have permission to execute commands';
+                    } else if (xhr.status === 404) {
+                        errorMessage += 'Server not found';
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage += xhr.responseJSON.error;
+                    } else {
+                        errorMessage += 'Unknown error occurred';
+                    }
+
+                    // Show error
+                    $('#cliOutput').show();
+                    $('#outputContent').text('Error: ' + errorMessage);
+                    toastr.error(errorMessage);
+                    $('#cliLoading').hide();
+                }
+            });
+        });
+
+        // Handle command suggestions
+        $('.command-suggestion').click(function() {
+            const command = $(this).data('command');
+            $('#command').val(command);
+        });
+
+        // Handle token copy
+        window.copyToken = function() {
+            const tokenInput = document.querySelector('input[readonly]');
+            tokenInput.select();
+            document.execCommand('copy');
+            toastr.success('Token copied to clipboard!');
+        };
+
+        // Add polling function
+        function pollCommandResult(commandHistoryId, apiToken, maskedToken) {
+            debugLog('Starting to poll for command result. Command History ID:', commandHistoryId);
+            let pollCount = 0;
+            const maxPolls = 30; // Maximum 1 minute of polling (30 * 2 seconds)
+            
+            const pollInterval = setInterval(() => {
+                pollCount++;
+                debugLog(`Polling attempt ${pollCount}/${maxPolls} for command ${commandHistoryId}`);
+                
+                $.ajax({
+                    url: `/api/servers/{{ server.id }}/command_history`,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + apiToken
+                    },
+                    success: function(response) {
+                        // Find the specific command history record
+                        const commandHistory = response.find(h => h.id === commandHistoryId.toString());
+                        if (!commandHistory) {
+                            debugLog('Command history not found yet. Waiting...');
+                            return;
+                        }
+
+                        debugLog('Poll response:', {
+                            commandId: commandHistoryId,
+                            hasOutput: commandHistory.output !== null,
+                            outputLength: commandHistory.output ? commandHistory.output.length : 0,
+                            executedTime: commandHistory.executed_time,
+                            runStatus: commandHistory.run_status,
+                            fullResponse: commandHistory
+                        });
+
+                        if (commandHistory.output !== null) {
+                            // Command has completed
+                            debugLog('Command completed. Stopping polling.');
+                            clearInterval(pollInterval);
+                            $('#cliOutput').show();
+                            $('#outputContent').text(commandHistory.output);
+                            $('#cliLoading').hide();
+                        } else if (pollCount >= maxPolls) {
+                            debugLog('Max polling attempts reached. Stopping polling.');
+                            clearInterval(pollInterval);
+                            $('#cliOutput').show();
+                            $('#outputContent').text('Command execution timed out. Please check command history for results.');
+                            $('#cliLoading').hide();
+                        } else {
+                            debugLog('Command still running. Waiting for output...');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        debugLog('Failed to poll command result:', {
+                            commandId: commandHistoryId,
+                            status: status,
+                            error: error,
+                            response: xhr.responseJSON,
+                            statusCode: xhr.status,
+                            statusText: xhr.statusText,
+                            requestUrl: `/api/servers/{{ server.id }}/command_history`,
+                            headers: {
+                                'Authorization': 'Bearer ' + maskedToken
+                            }
+                        });
+                        clearInterval(pollInterval);
+                        $('#cliOutput').show();
+                        $('#outputContent').text('Error: Failed to get command result. Please check command history for results.');
+                        $('#cliLoading').hide();
+                    }
+                });
+            }, 2000); // Poll every 2 seconds
+        }
+    });
+</script>
+{% endblock javascripts %} 

@@ -27,7 +27,7 @@
                 <div class="card-body">
                     <form method="post">
                         <div class="form-group">
-                            <label for="name">Name</label>
+                            <label for="name">Name <span style="color:red">*</span></label>
                             <input type="text" class="form-control" id="name" name="name" value="{{ task.name if task else '' }}" required>
                         </div>
                         <div class="form-group">
@@ -35,12 +35,12 @@
                             <textarea class="form-control" id="description" name="description">{{ task.description if task else '' }}</textarea>
                         </div>
                         <div class="form-group">
-                            <label for="job_id">Job ID</label>
+                            <label for="job_id">Job ID <span style="color:red">*</span></label>
                             <input type="text" class="form-control" id="job_id" name="job_id" value="{{ task.job_id if task else '' }}" required {% if task %}readonly{% endif %}>
                             {% if not task %}<small class="form-text text-muted">Must be unique</small>{% endif %}
                         </div>
                         <div class="form-group">
-                            <label for="cron">Cron Expression</label>
+                            <label for="cron">Cron Expression <span style="color:red">*</span></label>
                             <input type="text" class="form-control" id="cron" name="cron" value="{{ task.cron if task else '' }}" required>
                             <small class="form-text text-muted">e.g. 0 3 * * * (every day at 03:00)</small>
                         </div>

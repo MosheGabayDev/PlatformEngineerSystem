@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Dashboard</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">System Status</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">System is running normally.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                <div class="card-body">
+                    <a href="#" class="btn btn-primary">Manage Servers</a>
+                    <a href="#" class="btn btn-primary">View Tasks</a>
+                    <a href="#" class="btn btn-primary">System Logs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

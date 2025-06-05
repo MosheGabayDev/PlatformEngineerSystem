@@ -1,0 +1,25 @@
+
+{% else %}
+<label for="id_{{ field_name }}" class="form-label">{{ field_name|title }}{% if field_name in required_fields %} <span style="color:red">*</span>{% endif %}</label>
+{% if field_name in choices_dict %}
+    <select name="{{ field_name }}" id="id_{{ field_name }}" class="form-control">
+        <option value="">Select {{ field_name }}</option>
+        {% for key, value in choices_dict|get(field_name) %}
+            <option {% if item|getenumattribute(field_name) == value %}selected{% endif %} value="{{ value }}">{{ key }}</option>
+        {% endfor %}
+    </select>
+{% else %}
+    {% if field_name in integer_fields %}
+    <input type="number" name="{{ field_name }}" value="{{ item|getattribute(field_name) }}" class="form-control" placeholder="{{ field_name }}" id="id_{{ field_name }}"{% if field_name in required_fields %} required{% endif %}>
+    {% elif field_name in date_time_fields %}
+    <input type="datetime-local" name="{{ field_name }}" value="{{ item|getattribute(field_name) }}" class="form-control" placeholder="{{ field_name }}" id="id_{{ field_name }}"{% if field_name in required_fields %} required{% endif %}>
+    {% elif field_name in email_fields %}
+<div class="form-group mb-3">                                                                    
+<label for="id_{{ field_name }}" class="form-label">{{ field_name|title }}{% if field_name in required_fields %} <span style="color:red">*</span>{% endif %}</label>
+{% if field_name in choices_dict %}
+<select name="{{ field_name }}" id="id_{{ field_name }}" class="form-control">
+    <option value="">Select {{ field_name }}</option>
+    {% for key, value in choices_dict|get(field_name) %}
+        <option {% if item|getenumattribute(field_name) == value %}selected{% endif %} value="{{ value }}">{{ key }}</option>
+    {% endfor %}
+</select>

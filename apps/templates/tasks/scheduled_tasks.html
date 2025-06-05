@@ -1,0 +1,268 @@
+{% extends "adminlte/base.html" %}
+
+{% block title %}Scheduled Tasks{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Scheduled Tasks</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createTaskModal">
+                        <i class="fas fa-plus"></i> New Task
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Schedule</th>
+                            <th>Status</th>
+                            <th>Last Run</th>
+                            <th>Next Run</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <!-- Tasks will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Scheduled Task</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createTaskForm">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Task Type</label>
+                        <select class="form-control" name="task_type" required>
+                            <option value="AGENT">Agent</option>
+                            <option value="SSH">SSH</option>
+                            <option value="CLOUD">Cloud</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule (Cron Expression)</label>
+                        <input type="text" class="form-control" name="schedule" placeholder="* * * * *" required>
+                        <small class="form-text text-muted">Format: minute hour day month weekday</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Parameters (JSON)</label>
+                        <textarea class="form-control" name="parameters" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="isActive" name="is_active" checked>
+                            <label class="custom-control-label" for="isActive">Active</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="createTask()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Scheduled Task</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    <input type="hidden" name="task_id">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Task Type</label>
+                        <select class="form-control" name="task_type" required>
+                            <option value="AGENT">Agent</option>
+                            <option value="SSH">SSH</option>
+                            <option value="CLOUD">Cloud</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule (Cron Expression)</label>
+                        <input type="text" class="form-control" name="schedule" placeholder="* * * * *" required>
+                        <small class="form-text text-muted">Format: minute hour day month weekday</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Parameters (JSON)</label>
+                        <textarea class="form-control" name="parameters" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="editIsActive" name="is_active">
+                            <label class="custom-control-label" for="editIsActive">Active</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="updateTask()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load tasks on page load
+$(document).ready(function() {
+    loadTasks();
+});
+
+// Load tasks from API
+function loadTasks() {
+    $.get('/api/scheduled-tasks', function(tasks) {
+        const tbody = $('#tasksTableBody');
+        tbody.empty();
+        
+        tasks.forEach(task => {
+            const row = `
+                <tr>
+                    <td>${task.name}</td>
+                    <td>${task.task_type}</td>
+                    <td>${task.schedule}</td>
+                    <td>
+                        <span class="badge badge-${task.is_active ? 'success' : 'secondary'}">
+                            ${task.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>${task.last_run || 'Never'}</td>
+                    <td>${task.next_run || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="editTask(${task.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    });
+}
+
+// Create new task
+function createTask() {
+    const form = $('#createTaskForm');
+    const data = {
+        name: form.find('[name="name"]').val(),
+        task_type: form.find('[name="task_type"]').val(),
+        schedule: form.find('[name="schedule"]').val(),
+        parameters: JSON.parse(form.find('[name="parameters"]').val()),
+        is_active: form.find('[name="is_active"]').is(':checked')
+    };
+    
+    $.ajax({
+        url: '/api/scheduled-tasks',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            $('#createTaskModal').modal('hide');
+            form[0].reset();
+            loadTasks();
+            toastr.success('Task created successfully');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to create task');
+        }
+    });
+}
+
+// Edit task
+function editTask(taskId) {
+    $.get(`/api/scheduled-tasks/${taskId}`, function(task) {
+        const form = $('#editTaskForm');
+        form.find('[name="task_id"]').val(task.id);
+        form.find('[name="name"]').val(task.name);
+        form.find('[name="task_type"]').val(task.task_type);
+        form.find('[name="schedule"]').val(task.schedule);
+        form.find('[name="parameters"]').val(JSON.stringify(task.parameters, null, 2));
+        form.find('[name="is_active"]').prop('checked', task.is_active);
+        
+        $('#editTaskModal').modal('show');
+    });
+}
+
+// Update task
+function updateTask() {
+    const form = $('#editTaskForm');
+    const taskId = form.find('[name="task_id"]').val();
+    const data = {
+        name: form.find('[name="name"]').val(),
+        task_type: form.find('[name="task_type"]').val(),
+        schedule: form.find('[name="schedule"]').val(),
+        parameters: JSON.parse(form.find('[name="parameters"]').val()),
+        is_active: form.find('[name="is_active"]').is(':checked')
+    };
+    
+    $.ajax({
+        url: `//api/scheduled-tasks/${taskId}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            $('#editTaskModal').modal('hide');
+            loadTasks();
+            toastr.success('Task updated successfully');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to update task');
+        }
+    });
+}
+
+// Delete task
+function deleteTask(taskId) {
+    if (confirm('Are you sure you want to delete this task?')) {
+        $.ajax({
+            url: `/api/scheduled-tasks/${taskId}`,
+            method: 'DELETE',
+            success: function() {
+                loadTasks();
+                toastr.success('Task deleted successfully');
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.error || 'Failed to delete task');
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

@@ -45,7 +45,8 @@
           {{ form.hidden_tag() }}
 
           <div class="input-group mb-3">
-            {{ form.username(placeholder="Username", class="form-control") }}
+            <label for="username" class="w-100">Username <span style="color:red">*</span></label>
+            {{ form.username(placeholder="Username", class="form-control", required=True) }}
             <div class="input-group-append">
               <div class="input-group-text">
                 <span class="fas fa-user"></span>
@@ -53,7 +54,8 @@
             </div>
           </div>
           <div class="input-group mb-3">
-            {{ form.email(placeholder="Email", class="form-control") }}
+            <label for="email" class="w-100">Email <span style="color:red">*</span></label>
+            {{ form.email(placeholder="Email", class="form-control", required=True) }}
             <div class="input-group-append">
               <div class="input-group-text">
                 <span class="fas fa-envelope"></span>
@@ -61,7 +63,8 @@
             </div>
           </div>
           <div class="input-group mb-3">
-            {{ form.password(placeholder="Password", class="form-control", type="password") }}
+            <label for="password" class="w-100">Password <span style="color:red">*</span></label>
+            {{ form.password(placeholder="Password", class="form-control", type="password", required=True) }}
             <div class="input-group-append">
               <div class="input-group-text">
                 <span class="fas fa-lock"></span>

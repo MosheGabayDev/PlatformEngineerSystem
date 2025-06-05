@@ -1,0 +1,8 @@
+{
+  "api_token": "b21672bb1a32653d603347d99feda364",
+  "interval": 30,
+  "client_id": 1,
+  "last_version": "0.1.0",
+  "debug": true,
+  "server_public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsn+fNj4O9eiJBA4UAsTs\nUw1aVlC6b9crEHDN97puQw5hH4W6Jwb4D7zu+9t/WWs+mLNePcm2J5jTaOddBCS5\n0Tx59sLKJMIi+/WDgU1So1enNzgMoJqM1XVvQ+ycQuFrDZfIzQ2Kxhdlq51S65uh\nD52EdyZjFN+dfnhr+gKFszPwbTo5GiRhJlQ7O+CbPGyK43vy6wTVfRyaXqUtuTr2\npH4MhuKxm2erS8WgpjLpMg0cI3MQ1/h1l8Q+jvK/+u9cjYiUNUnj51EgARHeqTwC\n7C15mEKg46KNgYJLUrWehiXe+JjCums6kTWfYvbreXLsZ960k2/jJxs91DzGdQVl\n3wIDAQAB\n-----END PUBLIC KEY-----\n"
+}

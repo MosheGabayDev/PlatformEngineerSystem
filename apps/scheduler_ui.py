@@ -1,10 +1,7 @@
-from flask import Blueprint, render_template
-from apps.db import db
-from apps.models import ScheduledTask
+from flask import Blueprint
 
-scheduled_tasks_bp = Blueprint('scheduled_tasks', __name__, url_prefix='/scheduled_tasks')
+scheduled_tasks_bp = Blueprint('scheduled_tasks', __name__)
 
-@scheduled_tasks_bp.route('/')
+@scheduled_tasks_bp.route('/scheduled-tasks')
 def index():
-    tasks = ScheduledTask.query.order_by(ScheduledTask.id).all()
-    return render_template('scheduled_tasks/index.html', tasks=tasks) 
+    return 'Scheduled Tasks' 

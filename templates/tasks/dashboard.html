@@ -1,0 +1,414 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Task Dashboard{% endblock %}
+
+{% block stylesheets %}
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+{% endblock stylesheets %}
+
+{% block body_class %}sidebar-mini{% endblock body_class %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1>Task Dashboard</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/">Home</a></li>
+              <li class="breadcrumb-item active">Tasks</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <!-- Info boxes -->
+        <div class="row">
+          <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box">
+              <span class="info-box-icon bg-info elevation-1"><i class="fas fa-tasks"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Total Tasks</span>
+                <span class="info-box-number" id="total-tasks">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box">
+              <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Completed</span>
+                <span class="info-box-number" id="completed-tasks">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box">
+              <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-times"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Failed</span>
+                <span class="info-box-number" id="failed-tasks">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box">
+              <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-spinner"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Running</span>
+                <span class="info-box-number" id="running-tasks">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Tasks -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent Tasks</h3>
+                <div class="card-tools">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-tool" id="refresh-btn">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-tool" id="auto-refresh-btn" data-toggle="tooltip" title="Auto Refresh">
+                      <i class="fas fa-clock"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body table-responsive p-0">
+                <table class="table table-hover text-nowrap" id="tasks-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Created At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Tasks will be loaded here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Task Form -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Create New Task</h3>
+              </div>
+              <div class="card-body">
+                <form id="create-task-form">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="task-name">Name</label>
+                        <input type="text" class="form-control" id="task-name" required>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="task-type">Type</label>
+                        <select class="form-control" id="task-type" required>
+                          <option value="agent">Agent</option>
+                          <option value="ssh">SSH</option>
+                          <option value="cloud">Cloud</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-group">
+                        <label for="task-params">Parameters (JSON)</label>
+                        <input type="text" class="form-control" id="task-params" placeholder='{"command": "ls"}' required>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Create Task</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Task Details Modal -->
+  <div class="modal fade" id="task-details-modal" tabindex="-1" role="dialog" aria-labelledby="task-details-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="task-details-modal-label">Task Details</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl>
+                <dt>ID</dt>
+                <dd id="modal-task-id"></dd>
+                <dt>Name</dt>
+                <dd id="modal-task-name"></dd>
+                <dt>Type</dt>
+                <dd id="modal-task-type"></dd>
+                <dt>Status</dt>
+                <dd id="modal-task-status"></dd>
+                <dt>Created At</dt>
+                <dd id="modal-task-created"></dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl>
+                <dt>Parameters</dt>
+                <dd><pre id="modal-task-params"></pre></dd>
+                <dt>Result</dt>
+                <dd><pre id="modal-task-result"></pre></dd>
+                <dt>Error</dt>
+                <dd><pre id="modal-task-error"></pre></dd>
+              </dl>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <h6>Task History</h6>
+              <table class="table table-sm" id="task-history-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- History will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="cancel-task-btn" style="display: none;">Cancel Task</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% block javascripts %}
+  <!-- jQuery -->
+  <script src="{{ url_for('static', filename='assets/plugins/jquery/jquery.min.js') }}"></script>
+  <!-- Bootstrap 4 -->
+  <script src="{{ url_for('static', filename='assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <!-- AdminLTE App -->
+  <script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+  <!-- DataTables -->
+  <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+
+<script>
+let autoRefreshInterval = null;
+let currentTaskId = null;
+
+function fetchStats() {
+    fetch('/api/tasks/stats').then(r => r.json()).then(data => {
+        document.getElementById('total-tasks').innerText = data.total_tasks;
+        document.getElementById('completed-tasks').innerText = data.completed_tasks;
+        document.getElementById('failed-tasks').innerText = data.failed_tasks;
+        document.getElementById('running-tasks').innerText = data.running_tasks;
+        renderTasks(data.recent_tasks);
+    });
+}
+
+function renderTasks(tasks) {
+    const tbody = document.querySelector('#tasks-table tbody');
+    tbody.innerHTML = '';
+    tasks.forEach(task => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${task.id}</td>
+            <td>${task.name}</td>
+            <td>${task.type}</td>
+            <td><span class="badge badge-${getStatusBadgeClass(task.status)}">${task.status}</span></td>
+            <td>${task.created_at ? task.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
+            <td>
+                <button class="btn btn-sm btn-info view-task-btn" data-task-id="${task.id}">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                ${task.status === 'running' ? `
+                <button class="btn btn-sm btn-danger cancel-task-btn" data-task-id="${task.id}">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                ` : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Add event listeners to view buttons
+    document.querySelectorAll('.view-task-btn').forEach(btn => {
+        btn.addEventListener('click', () => showTaskDetails(btn.dataset.taskId));
+    });
+
+    // Add event listeners to cancel buttons
+    document.querySelectorAll('.cancel-task-btn').forEach(btn => {
+        btn.addEventListener('click', () => cancelTask(btn.dataset.taskId));
+    });
+}
+
+function getStatusBadgeClass(status) {
+    switch(status.toLowerCase()) {
+        case 'completed': return 'success';
+        case 'failed': return 'danger';
+        case 'running': return 'warning';
+        case 'pending': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function showTaskDetails(taskId) {
+    currentTaskId = taskId;
+    fetch(`/api/tasks/${taskId}`).then(r => r.json()).then(task => {
+        document.getElementById('modal-task-id').innerText = task.id;
+        document.getElementById('modal-task-name').innerText = task.name;
+        document.getElementById('modal-task-type').innerText = task.type;
+        document.getElementById('modal-task-status').innerHTML = `<span class="badge badge-${getStatusBadgeClass(task.status)}">${task.status}</span>`;
+        document.getElementById('modal-task-created').innerText = task.created_at ? task.created_at.replace('T', ' ').slice(0, 19) : '';
+        document.getElementById('modal-task-params').innerText = JSON.stringify(task.parameters, null, 2);
+        document.getElementById('modal-task-result').innerText = task.result || 'No result yet';
+        document.getElementById('modal-task-error').innerText = task.error || 'No errors';
+
+        // Show/hide cancel button based on task status
+        const cancelBtn = document.getElementById('cancel-task-btn');
+        if (task.status === 'running') {
+            cancelBtn.style.display = 'block';
+            cancelBtn.onclick = () => cancelTask(taskId);
+        } else {
+            cancelBtn.style.display = 'none';
+        }
+
+        // Load task history
+        fetch(`/api/tasks/${taskId}/history`).then(r => r.json()).then(history => {
+            const tbody = document.querySelector('#task-history-table tbody');
+            tbody.innerHTML = '';
+            history.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${entry.timestamp}</td>
+                    <td><span class="badge badge-${getStatusBadgeClass(entry.status)}">${entry.status}</span></td>
+                    <td>${entry.details || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        $('#task-details-modal').modal('show');
+    });
+}
+
+function cancelTask(taskId) {
+    if (confirm('Are you sure you want to cancel this task?')) {
+        fetch(`/api/tasks/${taskId}/cancel`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    fetchStats();
+                    if (currentTaskId === taskId) {
+                        showTaskDetails(taskId);
+                    }
+                } else {
+                    alert('Failed to cancel task: ' + data.error);
+                }
+            });
+    }
+}
+
+function toggleAutoRefresh() {
+    const btn = document.getElementById('auto-refresh-btn');
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        btn.classList.remove('active');
+    } else {
+        autoRefreshInterval = setInterval(fetchStats, 5000);
+        btn.classList.add('active');
+    }
+}
+
+document.getElementById('create-task-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('task-name').value;
+    const type = document.getElementById('task-type').value;
+    let parameters;
+    try {
+        parameters = JSON.parse(document.getElementById('task-params').value);
+    } catch (err) {
+        alert('Parameters must be valid JSON');
+        return;
+    }
+
+    fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name,
+            type,
+            parameters
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error creating task: ' + data.error);
+        } else {
+            document.getElementById('create-task-form').reset();
+            fetchStats();
+        }
+    });
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    fetchStats();
+    
+    // Add event listeners
+    document.getElementById('refresh-btn').addEventListener('click', fetchStats);
+    document.getElementById('auto-refresh-btn').addEventListener('click', toggleAutoRefresh);
+    
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock javascripts %}
+{% endblock content %} 

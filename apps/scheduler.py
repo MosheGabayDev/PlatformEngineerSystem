@@ -2,6 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apps.utils import cleanup_audit_log
 from datetime import datetime
+from apps.models.tasks import ScheduledTask
 
 def run_cleanup_audit_log():
     print(f"[{datetime.now().isoformat()}] Running scheduled cleanup_audit_log()")
@@ -9,7 +10,6 @@ def run_cleanup_audit_log():
 
 def start_scheduler(app):
     from apps.db import db
-    from apps.models import ScheduledTask
     scheduler = BackgroundScheduler()
     def job_wrapper(func):
         def wrapped():

@@ -1,0 +1,59 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Agent Update History{% endblock %}
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+    <style>
+      .status-failed, .status-error { color: #fff; background: #dc3545; }
+      .status-success { color: #fff; background: #28a745; }
+      .status-updating { color: #fff; background: #ffc107; }
+    </style>
+{% endblock stylesheets %}
+{% block content %}
+<div class="content-wrapper">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Update History for {{ agent.hostname }} ({{ agent.client_id }})</h1>
+        </div>
+        <div class="col-sm-6 text-right">
+          <a href="{{ url_for('users.agents_version_management') }}" class="btn btn-secondary">Back to Agents</a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Update Log</h3>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered table-hover">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Version</th>
+                <th>Error Message</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history %}
+              <tr>
+                <td><span class="badge {% if entry.status == 'failed' %}status-error{% elif entry.status == 'success' %}status-success{% elif entry.status == 'updating' %}status-updating{% endif %}">{{ entry.status }}</span></td>
+                <td>{{ entry.version }}</td>
+                <td>{% if entry.error_message %}<span class="text-danger">{{ entry.error_message }}</span>{% endif %}</td>
+                <td>{{ entry.created_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %} 

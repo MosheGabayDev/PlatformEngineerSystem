@@ -1,0 +1,335 @@
+{% extends "adminlte/base.html" %}
+
+{% block title %}Task Chains{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Task Chains</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createChainModal">
+                        <i class="fas fa-plus"></i> New Chain
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Tasks</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="chainsTableBody">
+                        <!-- Chains will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Chain Modal -->
+<div class="modal fade" id="createChainModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Task Chain</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createChainForm">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Tasks</label>
+                        <div id="tasksContainer">
+                            <div class="task-item mb-3 p-3 border rounded">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <select class="form-control task-select" required>
+                                            <option value="">Select Task</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" placeholder="Condition (JSON)" name="condition">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-danger remove-task">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="addTaskBtn">
+                            <i class="fas fa-plus"></i> Add Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createChain()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Chain Modal -->
+<div class="modal fade" id="editChainModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Task Chain</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editChainForm">
+                    <input type="hidden" name="chain_id">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="isActiveSwitch" name="is_active">
+                            <label class="custom-control-label" for="isActiveSwitch">Active</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateChain()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load chains on page load
+$(document).ready(function() {
+    loadChains();
+    loadTasks();
+});
+
+// Load task chains
+function loadChains() {
+    $.get('/api/task-chains', function(chains) {
+        const tbody = $('#chainsTableBody');
+        tbody.empty();
+        
+        chains.forEach(chain => {
+            const row = `
+                <tr>
+                    <td>${chain.name}</td>
+                    <td>${chain.description || ''}</td>
+                    <td>${chain.tasks.length} tasks</td>
+                    <td>
+                        <span class="badge badge-${chain.is_active ? 'success' : 'danger'}">
+                            ${chain.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>${formatDate(chain.created_at)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewChain(${chain.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="editChain(${chain.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="executeChain(${chain.id})">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteChain(${chain.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    });
+}
+
+// Load available tasks
+function loadTasks() {
+    $.get('/api/tasks', function(tasks) {
+        const options = tasks.map(task => 
+            `<option value="${task.id}">${task.name}</option>`
+        ).join('');
+        
+        $('.task-select').html('<option value="">Select Task</option>' + options);
+    });
+}
+
+// Add task to chain
+$('#addTaskBtn').click(function() {
+    const taskHtml = `
+        <div class="task-item mb-3 p-3 border rounded">
+            <div class="row">
+                <div class="col-md-6">
+                    <select class="form-control task-select" required>
+                        <option value="">Select Task</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Condition (JSON)" name="condition">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-task">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    $('#tasksContainer').append(taskHtml);
+    loadTasks();
+});
+
+// Remove task from chain
+$(document).on('click', '.remove-task', function() {
+    $(this).closest('.task-item').remove();
+});
+
+// Create chain
+function createChain() {
+    const form = $('#createChainForm');
+    const tasks = [];
+    
+    $('.task-item').each(function() {
+        const taskId = $(this).find('.task-select').val();
+        const condition = $(this).find('input[name="condition"]').val();
+        
+        if (taskId) {
+            tasks.push({
+                task_id: parseInt(taskId),
+                condition: condition || null
+            });
+        }
+    });
+    
+    const data = {
+        name: form.find('input[name="name"]').val(),
+        description: form.find('textarea[name="description"]').val(),
+        tasks: tasks
+    };
+    
+    $.ajax({
+        url: '/api/task-chains',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            $('#createChainModal').modal('hide');
+            loadChains();
+            toastr.success('Task chain created successfully');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to create task chain');
+        }
+    });
+}
+
+// Edit chain
+function editChain(chainId) {
+    $.get(`/api/task-chains/${chainId}`, function(chain) {
+        const form = $('#editChainForm');
+        form.find('input[name="chain_id"]').val(chain.id);
+        form.find('input[name="name"]').val(chain.name);
+        form.find('textarea[name="description"]').val(chain.description);
+        form.find('input[name="is_active"]').prop('checked', chain.is_active);
+        
+        $('#editChainModal').modal('show');
+    });
+}
+
+// Update chain
+function updateChain() {
+    const form = $('#editChainForm');
+    const chainId = form.find('input[name="chain_id"]').val();
+    
+    const data = {
+        name: form.find('input[name="name"]').val(),
+        description: form.find('textarea[name="description"]').val(),
+        is_active: form.find('input[name="is_active"]').is(':checked')
+    };
+    
+    $.ajax({
+        url: `/api/task-chains/${chainId}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            $('#editChainModal').modal('hide');
+            loadChains();
+            toastr.success('Task chain updated successfully');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to update task chain');
+        }
+    });
+}
+
+// Execute chain
+function executeChain(chainId) {
+    $.ajax({
+        url: `/api/task-chains/${chainId}/execute`,
+        method: 'POST',
+        success: function() {
+            toastr.success('Task chain execution started');
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON.error || 'Failed to execute task chain');
+        }
+    });
+}
+
+// Delete chain
+function deleteChain(chainId) {
+    if (confirm('Are you sure you want to delete this task chain?')) {
+        $.ajax({
+            url: `/api/task-chains/${chainId}`,
+            method: 'DELETE',
+            success: function() {
+                loadChains();
+                toastr.success('Task chain deleted successfully');
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.error || 'Failed to delete task chain');
+            }
+        });
+    }
+}
+
+// Helper functions
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+</script>
+{% endblock %} 

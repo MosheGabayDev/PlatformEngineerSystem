@@ -34,7 +34,11 @@
 <!-- ./wrapper -->
 
 <!-- Specific Page JS goes HERE  -->
-{% block javascripts %}{% endblock javascripts %}
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{{ url_for('static', filename='assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+{% endblock javascripts %}
 
 </body>
 </html>

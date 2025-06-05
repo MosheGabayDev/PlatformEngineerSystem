@@ -4,15 +4,17 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 import json, csv, io
-from flask_login import login_required
+from flask_login import login_required, current_user
 from apps.dyn_dt import blueprint
-from flask import render_template, request, redirect, url_for, jsonify, make_response
+from flask import render_template, request, redirect, url_for, jsonify, make_response, flash
 from apps.dyn_dt.utils import get_model_field_names, get_model_fk_values, name_to_class, user_filter, exclude_auto_gen_fields
 from apps import db, config
 from apps.dyn_dt.utils import *
 from sqlalchemy import and_
 from sqlalchemy import Integer, DateTime, String, Text
-from datetime import datetime
+from datetime import datetime, timedelta
+import uuid
+from apps.models.infrastructure import AWS_SERVERS
 
 @blueprint.route('/dynamic-dt')
 def dynamic_dt():
@@ -175,43 +177,44 @@ def model_dt(aPath):
         'segment': 'dynamic_dt',
         'parent': 'apps',
         'choices_dict': choices_dict,
-        'exclude_auto_gen_fields': exclude_auto_gen_fields(aModelClass)
+        'exclude_auto_gen_fields': exclude_auto_gen_fields(aModelClass),
+        'now': datetime.now(),
+        'timedelta': timedelta
     }
     return render_template('dyn_dt/model.html', **context)
 
 
-@blueprint.route('/create/<aPath>', methods=["POST"])
+@blueprint.route('/dynamic-dt/<aPath>/create', methods=['POST'])
 @login_required
 def create(aPath):
-    aModelClass = None
-
-    if aPath in config.Config.DYNAMIC_DATATB:
-        aModelName = config.Config.DYNAMIC_DATATB[aPath]
-        aModelClass = name_to_class(aModelName)
-
-    if not aModelClass:
-        return ' > ERR: Getting ModelClass for path: ' + aPath
-
-    if request.method == 'POST':
-        data = {}
-        fk_fields = get_model_fk_values(aModelClass)
-
-        for attribute, value in request.form.items():
-            if attribute in fk_fields.keys():
-                table_name = None
-                for product in fk_fields[attribute]:
-                    table_name = product.__class__.__tablename__
-                if table_name:
-                    model_name = config.Config.DYNAMIC_DATATB[table_name]
-                    value = name_to_class(model_name).query.filter_by(id=value).first()
-
-            data[attribute] = value if value else ''
-
-        new_item = aModelClass(**data)
+    if aPath not in config.Config.DYNAMIC_DATATB.keys():
+        return redirect(url_for('table_blueprint.index'))
+    
+    model_class = config.Config.DYNAMIC_DATATB[aPath]
+    data = {}
+    
+    # Special handling for api_tokens
+    if aPath == 'api_tokens':
+        data['user_id'] = current_user.id
+        data['token'] = str(uuid.uuid4())
+        # Handle permissions as array
+        permissions = request.form.getlist('permissions')
+        data['permissions'] = ','.join(permissions) if permissions else ''
+    else:
+        for field in request.form:
+            if field != 'id':  # Skip id field
+                data[field] = request.form[field]
+    
+    try:
+        new_item = model_class(**data)
         db.session.add(new_item)
         db.session.commit()
-
-    return redirect(request.referrer) 
+        flash('Item created successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating item: {str(e)}', 'error')
+    
+    return redirect(url_for('table_blueprint.model_dt', aPath=aPath))
 
 
 @blueprint.route('/delete/<aPath>/<id>', methods=["GET"])
@@ -234,40 +237,36 @@ def delete(aPath, id):
     return redirect(request.referrer)
 
 
-@blueprint.route('/update/<aPath>/<int:id>', methods=["POST"])
+@blueprint.route('/dynamic-dt/<aPath>/<int:id>/update', methods=['POST'])
 @login_required
 def update(aPath, id):
-    aModelClass = None
-
-    if aPath in config.Config.DYNAMIC_DATATB:
-        aModelName = config.Config.DYNAMIC_DATATB[aPath]
-        aModelClass = name_to_class(aModelName)
-
-    if not aModelClass:
-        return ' > ERR: Getting ModelClass for path: ' + aPath
-
-    item = aModelClass.query.get(id)
-    if not item:
-        return 'Item not found', 404
-
-    fk_fields = get_model_fk_values(aModelClass)
-
-    if request.method == 'POST':
-        for attribute, value in request.form.items():
-            if hasattr(item, attribute) and getattr(item, attribute, value) is not None:
-                if attribute in fk_fields.keys():
-                    table_name = None
-                    for product in fk_fields[attribute]:
-                        table_name = product.__class__.__tablename__
-                    if table_name:
-                        model_name = config.Config.DYNAMIC_DATATB[table_name]
-                        value = name_to_class(model_name).query.filter_by(id=value).first()
-
-                setattr(item, attribute, value)
-        
+    if aPath not in config.Config.DYNAMIC_DATATB.keys():
+        return redirect(url_for('table_blueprint.index'))
+    
+    model_class = config.Config.DYNAMIC_DATATB[aPath]
+    item = model_class.query.get_or_404(id)
+    data = {}
+    
+    # Special handling for api_tokens
+    if aPath == 'api_tokens':
+        # Handle permissions as array
+        permissions = request.form.getlist('permissions')
+        data['permissions'] = ','.join(permissions) if permissions else ''
+    else:
+        for field in request.form:
+            if field != 'id':  # Skip id field
+                data[field] = request.form[field]
+    
+    try:
+        for key, value in data.items():
+            setattr(item, key, value)
         db.session.commit()
-
-    return redirect(request.referrer)
+        flash('Item updated successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating item: {str(e)}', 'error')
+    
+    return redirect(url_for('table_blueprint.model_dt', aPath=aPath))
 
 
 @blueprint.route('/export/<aPath>', methods=['GET'])
@@ -360,7 +359,6 @@ def get(dict_data, key):
 @login_required
 def sync_aws_servers():
     """Sync servers from AWS EC2"""
-    from apps.models import AWS_SERVERS
     
     try:
         success = AWS_SERVERS.sync_from_aws()

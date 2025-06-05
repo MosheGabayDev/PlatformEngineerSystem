@@ -104,3 +104,138 @@ flask run --host=0.0.0.0 --port=5000
 
 ---
 [Flask AdminLTE](https://app-generator.dev/product/adminlte/flask/) - Open-Source **Flask** Starter provided by [App Generator](https://app-generator.dev)
+
+# Platform Engineer System
+
+מערכת לניהול משימות אוטומטיות עם ממשק משתמש נוח.
+
+## התקנה
+
+1. התקן את התלויות:
+```bash
+pip install -r requirements.txt
+```
+
+2. הגדר את משתני הסביבה:
+```bash
+cp .env.example .env
+# ערוך את קובץ .env עם ההגדרות המתאימות
+```
+
+3. אתחל את בסיס הנתונים:
+```bash
+flask db upgrade
+```
+
+## הפעלת המערכת
+
+### 1. הפעלת Redis
+Redis משמש כ-broker עבור Celery. יש להפעיל אותו לפני הפעלת שאר המערכת.
+
+#### Windows:
+```bash
+# התקן Redis דרך Chocolatey
+choco install redis-64
+
+# הפעל את שרת Redis
+redis-server
+```
+
+#### Linux/Mac:
+```bash
+# התקן Redis
+sudo apt-get install redis-server  # Ubuntu/Debian
+brew install redis  # Mac
+
+# הפעל את שרת Redis
+sudo service redis-server start  # Ubuntu/Debian
+brew services start redis  # Mac
+```
+
+#### Docker:
+```bash
+docker run -d -p 6379:6379 redis
+```
+
+### 2. הפעלת שרת Flask
+```bash
+flask run --host=0.0.0.0 --port=5000
+```
+
+### 3. הפעלת Celery Worker
+```bash
+celery -A apps.tasks.celery_app worker --loglevel=info
+```
+
+### 4. הפעלת Flower (אופציונלי)
+Flower הוא כלי לניטור Celery:
+```bash
+celery -A apps.tasks.celery_app flower
+```
+
+## סדר הפעלה מומלץ
+
+1. הפעל את Redis
+2. הפעל את שרת Flask
+3. הפעל את Celery Worker
+4. (אופציונלי) הפעל את Flower
+
+## גישה למערכת
+
+- ממשק משתמש: http://localhost:5000
+- Flower (ניטור): http://localhost:5555
+
+## תכונות עיקריות
+
+- ניהול משימות אוטומטיות
+- תזמון משימות עם תמיכה ב-cron
+- שרשור משימות (Task Chaining)
+- מערכת התראות
+- ניטור בזמן אמת
+- ממשק משתמש נוח
+
+## פיתוח
+
+### מבנה הפרויקט
+```
+.
+├── apps/
+│   ├── models.py          # מודלים של בסיס הנתונים
+│   ├── tasks/            # לוגיקת משימות
+│   ├── templates/        # תבניות HTML
+│   └── __init__.py
+├── migrations/           # קבצי מיגרציה
+├── requirements.txt      # תלויות
+└── run.py               # נקודת כניסה
+```
+
+### הוספת משימה חדשה
+
+1. הוסף את המשימה ל-`apps/tasks/__init__.py`
+2. הוסף את המודל ל-`apps/models.py` (אם נדרש)
+3. הוסף את התצוגה ל-`apps/templates/tasks/`
+4. הוסף את הנתיב ל-`apps/tasks/views.py`
+
+## פתרון בעיות
+
+### שגיאות נפוצות
+
+1. **Redis לא זמין**
+   - וודא ש-Redis רץ
+   - בדוק את החיבור ב-`.env`
+
+2. **Celery Worker לא מגיב**
+   - הפעל מחדש את ה-worker
+   - בדוק את הלוגים
+
+3. **שגיאות מיגרציה**
+   - מחק את תיקיית `migrations`
+   - הרץ `flask db init`
+   - הרץ `flask db migrate`
+   - הרץ `flask db upgrade`
+flask db init
+flask db migrate
+flask db upgrade
+## רישיון
+
+MIT

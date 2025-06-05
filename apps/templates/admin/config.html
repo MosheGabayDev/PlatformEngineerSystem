@@ -1,0 +1,217 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Configuration {% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>System Configuration</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item">Administration</li>
+                        <li class="breadcrumb-item active">Configuration</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Configuration Tabs -->
+            <div class="card">
+                <div class="card-header p-2">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#app" data-toggle="tab">Application</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#database" data-toggle="tab">Database</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#celery" data-toggle="tab">Celery</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#logging" data-toggle="tab">Logging</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#security" data-toggle="tab">Security</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tasks" data-toggle="tab">Tasks</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Application Settings -->
+                        <div class="tab-pane active" id="app">
+                            <form id="appConfigForm">
+                                <div class="form-group">
+                                    <label for="appName">Application Name</label>
+                                    <input type="text" class="form-control" id="appName" name="app.name">
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="debugMode" name="app.debug">
+                                        <label class="custom-control-label" for="debugMode">Debug Mode</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Database Settings -->
+                        <div class="tab-pane" id="database">
+                            <form id="databaseConfigForm">
+                                <div class="form-group">
+                                    <label for="dbUrl">Database URL</label>
+                                    <input type="text" class="form-control" id="dbUrl" name="database.url">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Celery Settings -->
+                        <div class="tab-pane" id="celery">
+                            <form id="celeryConfigForm">
+                                <div class="form-group">
+                                    <label for="brokerUrl">Broker URL</label>
+                                    <input type="text" class="form-control" id="brokerUrl" name="celery.broker_url">
+                                </div>
+                                <div class="form-group">
+                                    <label for="resultBackend">Result Backend</label>
+                                    <input type="text" class="form-control" id="resultBackend" name="celery.result_backend">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Logging Settings -->
+                        <div class="tab-pane" id="logging">
+                            <form id="loggingConfigForm">
+                                <div class="form-group">
+                                    <label for="logLevel">Log Level</label>
+                                    <select class="form-control" id="logLevel" name="logging.level">
+                                        <option value="DEBUG">DEBUG</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                        <option value="CRITICAL">CRITICAL</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="logFormat">Log Format</label>
+                                    <input type="text" class="form-control" id="logFormat" name="logging.format">
+                                </div>
+                                <div class="form-group">
+                                    <label for="logDirectory">Log Directory</label>
+                                    <input type="text" class="form-control" id="logDirectory" name="logging.directory">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <div class="tab-pane" id="security">
+                            <form id="securityConfigForm">
+                                <div class="form-group">
+                                    <label for="sessionTimeout">Session Timeout (seconds)</label>
+                                    <input type="number" class="form-control" id="sessionTimeout" name="security.session_timeout">
+                                </div>
+                                <div class="form-group">
+                                    <label for="maxLoginAttempts">Max Login Attempts</label>
+                                    <input type="number" class="form-control" id="maxLoginAttempts" name="security.max_login_attempts">
+                                </div>
+                                <div class="form-group">
+                                    <label for="passwordMinLength">Minimum Password Length</label>
+                                    <input type="number" class="form-control" id="passwordMinLength" name="security.password_min_length">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Task Settings -->
+                        <div class="tab-pane" id="tasks">
+                            <form id="tasksConfigForm">
+                                <div class="form-group">
+                                    <label for="maxRetries">Max Retries</label>
+                                    <input type="number" class="form-control" id="maxRetries" name="tasks.max_retries">
+                                </div>
+                                <div class="form-group">
+                                    <label for="retryDelay">Retry Delay (seconds)</label>
+                                    <input type="number" class="form-control" id="retryDelay" name="tasks.retry_delay">
+                                </div>
+                                <div class="form-group">
+                                    <label for="taskTimeout">Task Timeout (seconds)</label>
+                                    <input type="number" class="form-control" id="taskTimeout" name="tasks.timeout">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+$(document).ready(function() {
+    // Load current configuration
+    function loadConfig() {
+        $.get('/admin/config/get', function(data) {
+            // Populate form fields
+            Object.keys(data).forEach(function(section) {
+                Object.keys(data[section]).forEach(function(key) {
+                    const value = data[section][key];
+                    const input = $(`[name="${section}.${key}"]`);
+                    
+                    if (input.attr('type') === 'checkbox') {
+                        input.prop('checked', value);
+                    } else {
+                        input.val(value);
+                    }
+                });
+            });
+        });
+    }
+
+    // Save configuration
+    $('form').on('submit', function(e) {
+        e.preventDefault();
+        const formData = {};
+        $(this).serializeArray().forEach(function(item) {
+            const [section, key] = item.name.split('.');
+            if (!formData[section]) formData[section] = {};
+            formData[section][key] = item.value;
+        });
+
+        $.ajax({
+            url: '/admin/config/save',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function() {
+                toastr.success('Configuration saved successfully');
+            },
+            error: function() {
+                toastr.error('Error saving configuration');
+            }
+        });
+    });
+
+    // Initial load
+    loadConfig();
+});
+</script>
+{% endblock %} 

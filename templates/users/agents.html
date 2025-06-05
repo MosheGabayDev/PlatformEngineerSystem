@@ -1,0 +1,102 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Agent Version Management{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Agent Version Management</h1>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <form class="form-inline" method="get" action="{{ url_for('users.agents_version_management') }}">
+            <input class="form-control mr-2" type="search" name="q" placeholder="Search hostname or client ID" value="{{ q }}">
+            <select class="form-control mr-2" name="status">
+              <option value="">All Statuses</option>
+              {% for s in all_statuses %}
+                <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <select class="form-control mr-2" name="os">
+              <option value="">All OS</option>
+              {% for os in all_oses %}
+                <option value="{{ os }}" {% if os_filter == os %}selected{% endif %}>{{ os }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-secondary mr-2" type="submit">Filter</button>
+          </form>
+          <form class="form-inline" method="post" action="{{ url_for('users.set_all_agents_version') }}">
+            <input class="form-control mr-2" type="text" name="desired_version" placeholder="Set version for all agents">
+            <button class="btn btn-primary" type="submit">Set All</button>
+          </form>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered table-hover">
+            <thead>
+              <tr>
+                <th>Client ID</th>
+                <th>Hostname</th>
+                <th>OS</th>
+                <th>Current Version</th>
+                <th>Desired Version</th>
+                <th>Status</th>
+                <th>Update Status</th>
+                <th>Last Seen</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for agent in agents %}
+              <tr>
+                <td>{{ agent.client_id }}</td>
+                <td>{{ agent.hostname }}</td>
+                <td>{{ agent.os }}</td>
+                <td>{{ agent.current_version or '' }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('users.set_agent_version', client_id=agent.client_id) }}" class="form-inline">
+                    <input class="form-control form-control-sm mr-2" type="text" name="desired_version" value="{{ agent.desired_version or '' }}" style="width: 100px;">
+                    <button class="btn btn-sm btn-success" type="submit">Set</button>
+                  </form>
+                </td>
+                <td class="{% if agent.status in ['error','failed'] %}status-error{% elif agent.status == 'updating' %}status-updating{% elif agent.status == 'online' %}status-success{% endif %}">{{ agent.status or '' }}</td>
+                <td>
+                  {% set update = agent_status_map.get(agent.client_id) %}
+                  {% if update %}
+                    <span class="badge {% if update.status == 'failed' %}status-error{% elif update.status == 'success' %}status-success{% elif update.status == 'updating' %}status-updating{% endif %}">{{ update.status }}</span>
+                    {% if update.error_message %}<br><small class="text-danger">{{ update.error_message }}</small>{% endif %}
+                    <br><small>{{ update.created_at }}</small>
+                  {% else %}
+                    <span class="text-muted">No update</span>
+                  {% endif %}
+                </td>
+                <td>{{ agent.last_seen or '' }}</td>
+                <td>
+                  <a href="{{ url_for('users.agent_update_history', client_id=agent.client_id) }}" class="btn btn-sm btn-info">History</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}">
+    <style>
+      .status-failed, .status-error { color: #fff; background: #dc3545; }
+      .status-success { color: #fff; background: #28a745; }
+      .status-updating { color: #fff; background: #ffc107; }
+    </style>
+{% endblock stylesheets %} 
